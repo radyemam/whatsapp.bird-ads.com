@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة التعليمات</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="/style.css?v=<%= Date.now() %>" rel="stylesheet">
+</head>
+
+<body>
+    <%- include('partials/navbar') %>
+        <%- include('partials/sidebar') %>
+
+            <% if (typeof success !=='undefined' && success) { %>
+                <div class="alert alert-success success-msg shadow-lg rounded-pill px-5" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i> تم حفظ التعليمات بنجاح!
+                </div>
+                <script>
+                    setTimeout(() => {
+                        window.location.href = '/dashboard/instructions';
+                    }, 1500);
+                </script>
+                <% } %>
+
+                    <div class="container-fluid main-content px-4 px-lg-5">
+                        <div class="glass-card p-4 p-md-5 animate-fade-in">
+                            <div
+                                class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
+                                <h2 class="m-0 fw-bold d-flex align-items-center gap-2 text-white">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"
+                                        fill="var(--primary-color)" viewBox="0 0 16 16">
+                                        <path fill-rule="evenodd"
+                                            d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5z" />
+                                        <path
+                                            d="M2.242 2.194a.27.27 0 0 1 .516 0l.162.53c.035.115.14.194.258.194h.551c.259 0 .37.333.164.493l-.468.363a.277.277 0 0 0-.094.3l.173.569c.078.256-.213.462-.423.3l-.417-.324a.267.267 0 0 0-.328 0l-.417.323c-.21.163-.5-.043-.423-.299l.173-.57a.277.277 0 0 0-.094-.299l-.468-.363c-.206-.16-.095-.493.164-.493h.551a.267.267 0 0 1 .258-.194l.162-.53zm0 4a.27.27 0 0 1 .516 0l.162.53c.035.115.14.194.258.194h.551c.259 0 .37.333.164.493l-.468.363a.277.277 0 0 0-.094.3l.173.569c.078.256-.213.462-.423.3l-.417-.324a.267.267 0 0 0-.328 0l-.417.323c-.21.163-.5-.043-.423-.299l.173-.57a.277.277 0 0 0-.094-.299l-.468-.363c-.206-.16-.095-.493.164-.493h.551a.267.267 0 0 1 .258-.194l.162-.53zm0 4a.27.27 0 0 1 .516 0l.162.53c.035.115.14.194.258.194h.551c.259 0 .37.333.164.493l-.468.363a.277.277 0 0 0-.094.3l.173.569c.078.256-.213.462-.423.3l-.417-.324a.267.267 0 0 0-.328 0l-.417.323c-.21.163-.5-.043-.423-.299l.173-.57a.277.277 0 0 0-.094-.299l-.468-.363c-.206-.16-.095-.493.164-.493h.551a.267.267 0 0 1 .258-.194l.162-.53z" />
+                                    </svg>
+                                    إدارة التعليمات
+                                </h2>
+                                <button class="btn btn-primary px-4 rounded-pill shadow-sm" data-bs-toggle="modal"
+                                    data-bs-target="#addModal">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+                                        class="me-1" viewBox="0 0 16 16">
+                                        <path fill-rule="evenodd"
+                                            d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2Z" />
+                                    </svg>
+                                    إضافة تعليمات جديدة
+                                </button>
+                            </div>
+
+
+
+                            <% if (instructions.length===0) { %>
+                                <div class="text-center py-5 glass-card mb-4"
+                                    style="background: rgba(255,255,255,0.03);">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor"
+                                        class="opacity-25 mb-3" viewBox="0 0 16 16">
+                                        <path
+                                            d="M5 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z" />
+                                        <path
+                                            d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2zm0 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3z" />
+                                    </svg>
+                                    <h4 class="text-white-50">لا توجد تعليمات مخصصة حالياً</h4>
+                                    <p class="text-secondary">البوت شغال حالياً بالتعليمات الافتراضية فقط.</p>
+                                    <button class="btn btn-outline-primary rounded-pill mt-2 px-4"
+                                        data-bs-toggle="modal" data-bs-target="#addModal">أضف معلومات شغلك
+                                        دلوقتي</button>
+                                </div>
+                                <% } else { %>
+                                    <div class="instructions-list">
+                                        <% instructions.forEach(inst=> { %>
+                                            <div class="instruction-item">
+                                                <div
+                                                    class="instruction-header d-flex justify-content-between align-items-center gap-3">
+                                                    <!-- Left Side: Title & Badges -->
+                                                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                                                        <span class="badge bg-primary px-3 py-2 rounded-pill">
+                                                            <%= inst.clientName %>
+                                                        </span>
+                                                        <% if (inst.actionTarget) { %>
+                                                            <span class="badge bg-success px-3 py-2 rounded-pill">
+                                                                📤 <%= inst.actionTarget %>
+                                                            </span>
+                                                            <% } %>
+                                                    </div>
+
+                                                    <!-- Desktop Actions (Hidden on Mobile) -->
+                                                    <div
+                                                        class="action-buttons d-none d-md-flex align-items-center gap-2">
+                                                        <button class="btn btn-sm btn-outline-info rounded-pill px-3"
+                                                            onclick="editInstruction(this)" data-id="<%= inst.id %>"
+                                                            data-client-name="<%= inst.clientName %>"
+                                                            data-content="<%= inst.content %>"
+                                                            data-action-target="<%= inst.actionTarget %>"
+                                                            data-image-url="<%= inst.imageUrl %>">
+                                                            <i class="bi bi-pencil-square me-1"></i> تعديل
+                                                        </button>
+
+                                                        <form action="/dashboard/instructions/toggle/<%= inst.id %>"
+                                                            method="POST"
+                                                            class="d-inline h-100 d-flex align-items-center">
+                                                            <div class="form-check form-switch m-0"
+                                                                title="اضغط لتغيير الحالة">
+                                                                <input class="form-check-input" type="checkbox"
+                                                                    onchange="this.form.submit()" <%=inst.isActive
+                                                                    ? 'checked' : '' %> style="cursor: pointer; width:
+                                                                3em; height: 1.5em;">
+                                                            </div>
+                                                        </form>
+
+                                                        <form action="/dashboard/instructions/delete" method="POST"
+                                                            class="m-0 d-inline"
+                                                            onsubmit="return confirm('هل أنت متأكد من حذف هذه التعليمات؟')">
+                                                            <input type="hidden" name="id" value="<%= inst.id %>">
+                                                            <button type="submit"
+                                                                class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                                                <i class="bi bi-trash3 me-1"></i> حذف
+                                                            </button>
+                                                        </form>
+                                                    </div>
+
+                                                    <!-- Mobile Actions (Dropdown) -->
+                                                    <div class="dropdown d-md-none">
+                                                        <button class="btn btn-link text-white p-0" type="button"
+                                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="24"
+                                                                height="24" fill="currentColor"
+                                                                class="bi bi-three-dots-vertical" viewBox="0 0 16 16">
+                                                                <path
+                                                                    d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z" />
+                                                            </svg>
+                                                        </button>
+                                                        <ul
+                                                            class="dropdown-menu dropdown-menu-end dropdown-menu-dark shadow border-secondary">
+                                                            <!-- Toggle Action (Text Based) -->
+                                                            <li>
+                                                                <form
+                                                                    action="/dashboard/instructions/toggle/<%= inst.id %>"
+                                                                    method="POST">
+                                                                    <button type="submit"
+                                                                        class="dropdown-item d-flex align-items-center gap-2 <%= inst.isActive ? 'text-warning' : 'text-success' %>">
+                                                                        <% if (inst.isActive) { %>
+                                                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                                                                width="16" height="16"
+                                                                                fill="currentColor"
+                                                                                class="bi bi-pause-circle"
+                                                                                viewBox="0 0 16 16">
+                                                                                <path
+                                                                                    d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                                                                                <path
+                                                                                    d="M5 6.25a1.25 1.25 0 1 1 2.5 0v3.5a1.25 1.25 0 1 1-2.5 0v-3.5zm3.5 0a1.25 1.25 0 1 1 2.5 0v3.5a1.25 1.25 0 1 1-2.5 0v-3.5z" />
+                                                                            </svg>
+                                                                            إيقاف مؤقت
+                                                                            <% } else { %>
+                                                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                                                    width="16" height="16"
+                                                                                    fill="currentColor"
+                                                                                    class="bi bi-play-circle"
+                                                                                    viewBox="0 0 16 16">
+                                                                                    <path
+                                                                                        d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                                                                                    <path
+                                                                                        d="M6.271 5.055a.5.5 0 0 1 .52.038l3.5 2.5a.5.5 0 0 1 0 .814l-3.5 2.5A.5.5 0 0 1 6 10.5v-5a.5.5 0 0 1 .271-.445z" />
+                                                                                </svg>
+                                                                                تفعيل
+                                                                                <% } %>
+                                                                    </button>
+                                                                </form>
+                                                            </li>
+                                                            <li>
+                                                                <hr
+                                                                    class="dropdown-divider border-secondary opacity-25">
+                                                            </li>
+                                                            <!-- Edit Action -->
+                                                            <li>
+                                                                <button
+                                                                    class="dropdown-item d-flex align-items-center gap-2"
+                                                                    onclick="editInstruction(this)"
+                                                                    data-id="<%= inst.id %>"
+                                                                    data-client-name="<%= inst.clientName %>"
+                                                                    data-content="<%= inst.content %>"
+                                                                    data-action-target="<%= inst.actionTarget %>"
+                                                                    data-image-url="<%= inst.imageUrl %>">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16"
+                                                                        height="16" fill="currentColor"
+                                                                        class="bi bi-pencil-square" viewBox="0 0 16 16">
+                                                                        <path
+                                                                            d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z" />
+                                                                        <path fill-rule="evenodd"
+                                                                            d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z" />
+                                                                    </svg>
+                                                                    تعديل
+                                                                </button>
+                                                            </li>
+                                                            <!-- Delete Action -->
+                                                            <li>
+                                                                <form action="/dashboard/instructions/delete"
+                                                                    method="POST" class="d-inline"
+                                                                    onsubmit="return confirm('هل أنت متأكد من حذف هذه التعليمات؟')">
+                                                                    <input type="hidden" name="id"
+                                                                        value="<%= inst.id %>">
+                                                                    <button type="submit"
+                                                                        class="dropdown-item text-danger d-flex align-items-center gap-2">
+                                                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                                                            width="16" height="16" fill="currentColor"
+                                                                            class="bi bi-trash3" viewBox="0 0 16 16">
+                                                                            <path
+                                                                                d="M6.5 8a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 1 0v-3a.5.5 0 0 0-.5-.5Zm2.5 0a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 1 0v-3a.5.5 0 0 0-.5-.5Zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6Z" />
+                                                                            <path
+                                                                                d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1ZM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118ZM2.5 3h11V2h-11v1Z" />
+                                                                        </svg>
+                                                                        حذف
+                                                                    </button>
+                                                                </form>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                                <div class="instruction-content">
+                                                    <%= inst.content %>
+                                                </div>
+
+                                                <!-- Display Images (Logic for both String and JSON) -->
+                                                <% if (inst.imageUrl) { %>
+                                                    <div class="instruction-preview-gallery">
+                                                        <% let images=[]; try { if (inst.imageUrl.startsWith('[')) {
+                                                            images=JSON.parse(inst.imageUrl); } else { images=[{ url:
+                                                            inst.imageUrl, description: 'صورة' }]; } } catch (e) {
+                                                            images=[{ url: inst.imageUrl, description: 'صورة' }]; } %>
+                                                            <% images.forEach(img=> { %>
+                                                                <img src="<%= img.url %>" alt="<%= img.description %>"
+                                                                    class="instruction-image"
+                                                                    title="<%= img.description %>"
+                                                                    onclick="window.open('<%= img.url %>', '_blank')">
+                                                                <% }) %>
+                                                    </div>
+                                                    <% } %>
+                                            </div>
+                                            <% }) %>
+                                    </div>
+                                    <% } %>
+                        </div>
+                    </div>
+
+                    <!-- Add Modal -->
+                    <div class="modal fade" id="addModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                            <div class="modal-content"
+                                style="background: #1e293b; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+                                <div class="modal-header border-bottom border-secondary border-opacity-25">
+                                    <h5 class="modal-title text-white fw-bold">إضافة تعليمات جديدة</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
+                                </div>
+                                <form action="/dashboard/instructions/add" method="POST">
+                                    <div class="modal-body p-4">
+                                        <div class="mb-4">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <label class="form-label text-white fw-bold m-0">التصنيف / الفئة</label>
+                                                <span class="info-btn" data-bs-toggle="popover" tabindex="0"
+                                                    title="نصيحة للتصنيف" data-bs-html="true"
+                                                    data-bs-content="الاسم ده بيساعدك تنظم تعليماتك. اختار اسم واضح للمجموعة دي.<br><br><b>أمثلة:</b><ul class='helper-example-list'><li>✅ أسعار المنيو</li><li>✅ سياسة الشحن</li><li>✅ فروعنا المتاحة</li></ul>">?</span>
+                                            </div>
+                                            <input type="text" name="clientName"
+                                                class="form-control form-control-lg bg-dark text-white border-secondary"
+                                                required placeholder="مثال: أسعار الملابس، معلومات الشحن، عروض الصيف">
+                                        </div>
+                                        <div class="mb-4">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <label class="form-label text-white fw-bold m-0">العنوان / الاسم</label>
+                                                <span class="info-btn" data-bs-toggle="popover" tabindex="0"
+                                                    title="عنوان التعليمة" data-bs-html="true"
+                                                    data-bs-content="اسم مختصر للتعليمة يوضح موضوعها.<br><br><b>أمثلة:</b><ul class='helper-example-list'><li>✅ ترحيب عام</li><li>✅ معلومات الشحن</li><li>✅ سعر المنتج</li></ul>">?</span>
+                                            </div>
+                                            <input type="text" name="title"
+                                                class="form-control form-control-lg bg-dark text-white border-secondary"
+                                                required placeholder="مثال: ترحيب العملاء، أسعار التوصيل">
+                                        </div>
+                                        <div class="mb-4">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <label class="form-label text-white fw-bold m-0">محتوى التعليمات</label>
+                                                <span class="info-btn" data-bs-toggle="popover" tabindex="0"
+                                                    title="طريقة كتابة التعليمات" data-bs-html="true"
+                                                    data-bs-content="اكتب كل حاجة عايز البوت يعرفها بوضوح. كل ما زودت تفاصيل، كل ما كان الرد أدق.<br><br><b>أمثلة حقيقية:</b><ul class='helper-example-list'><li>1️⃣ سعر الكوتشي 450ج ومتاح لون أسود وأبيض.</li><li>2️⃣ بنفتح يومياً من 11 ص لـ 11 م ماعدا الجمعة.</li><li>3️⃣ الشحن بياخد 3 أيام وتكلفتة 40ج داخل القاهرة.</li></ul>">?</span>
+                                            </div>
+                                            <textarea name="content"
+                                                class="form-control bg-dark text-white border-secondary" required
+                                                placeholder="اكتب كل التفاصيل اللي عايز البوت يعرفها هنا.&#10;مثال:&#10;- سعر التيشرت 200ج والمقاسات من L لـ XXL.&#10;- الشحن بياخد 3 أيام ومجاني لو اشتريت بـ 1000ج.&#10;- عندنا فرع في المهندسين وفرع في التجمع."
+                                                style="min-height: 250px;"></textarea>
+                                        </div>
+
+                                        <!-- Image Gallery Section -->
+                                        <div class="mb-4">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <label class="form-label text-white fw-bold m-0">🖼️ صور مرفقة (مع
+                                                    وصف)</label>
+                                                <span class="info-btn" data-bs-toggle="popover" tabindex="0"
+                                                    title="وصف الصور" data-bs-html="true"
+                                                    data-bs-content="اكتب وصف دقيق لكل صورة عشان البوت يعرف يختارها لما العميل يطلبها.<br><br><b>أمثلة للأوصاف:</b><ul class='helper-example-list'><li>✅ صورة الفستان الأحمر</li><li>✅ خريطة فروع مدينة نصر</li><li>✅ جدول المقاسات والشحن</li></ul>">?</span>
+                                            </div>
+
+                                            <!-- Hidden input to store JSON data -->
+                                            <input type="hidden" name="imageUrl" id="addImageUrlJson">
+
+                                            <!-- Gallery Container -->
+                                            <div id="addImagesContainer" class="d-flex flex-column gap-3 mb-3">
+                                                <!-- Images will be added here via JS -->
+                                            </div>
+
+                                            <!-- Add Button -->
+                                            <div class="d-flex gap-2 align-items-center">
+                                                <button type="button" id="addMoreImagesBtn"
+                                                    class="btn btn-outline-secondary border-dashed flex-grow-1 py-2 text-white-50">
+                                                    <span class="me-1">➕</span> إضافة صورة
+                                                </button>
+                                                <span class="spinner-border spinner-border-sm text-light d-none"
+                                                    id="addUploadSpinner"></span>
+                                                <span id="addUploadStatus" class="small text-white-50"></span>
+                                            </div>
+
+                                            <!-- Hidden File Input for triggering upload -->
+                                            <input type="file" id="addGalleryInput" accept="image/*" class="d-none">
+
+                                            <div class="form-text text-white-50 mt-2">يمكنك إضافة أكثر من صورة. اكتب
+                                                وصفاً دقيقاً لكل صورة ومختلف عن الاخر ليتمكن البوت من اختيارها (مثال:
+                                                "أحمر", "عرض أمامي"، "الاصلي" ).</div>
+                                        </div>
+
+                                        <div class="d-flex align-items-center mb-2">
+                                            <label class="form-label text-white fw-bold m-0">🎯 إرسال الطلب إلى (Action
+                                                Target)</label>
+                                            <span class="info-btn" data-bs-toggle="popover" tabindex="0"
+                                                title="توجيه الطلبات" data-bs-html="true"
+                                                data-bs-content="لو العميل سأل على حاجة وعايزه يطلبها، البوت هيبعت بيانات العميل للجروب ده.<br><br><b>أمثلة للجروبات:</b><ul class='helper-example-list'><li>✅ جروب المبيعات</li><li>✅ جروب طلبات الصيانة</li><li>✅ جروب الإدارة</li></ul>">?</span>
+                                        </div>
+                                        <div class="input-group shadow-sm">
+                                            <select name="actionTarget" id="addActionTarget"
+                                                class="form-select form-select-lg bg-dark text-white border-secondary">
+                                                <option value="">-- اختر الجروب --</option>
+                                                <% if (typeof groups !=='undefined' && groups.length> 0) { %>
+                                                    <% groups.forEach(group=> { %>
+                                                        <option value="<%= group.subject %>">
+                                                            <%= group.subject %>
+                                                        </option>
+                                                        <% }); %>
+                                                            <% } else { %>
+                                                                <option value="" disabled>⚠️ يجب ربط الواتساب لإظهار
+                                                                    الجروبات</option>
+                                                                <% } %>
+                                            </select>
+                                            <button class="btn btn-secondary border-secondary px-3" type="button"
+                                                id="refreshGroupsBtn" title="تحديث الجروبات" onclick="refreshGroups()">
+                                                🔄
+                                            </button>
+                                        </div>
+                                        <div class="form-text text-white-50">اختر الجروب الذي سيتم إرسال الطلبات إليه.
+                                        </div>
+                                    </div>
+
+                                    <div class="modal-footer border-top border-secondary border-opacity-25">
+                                        <button type="button" class="btn btn-link text-white-50 text-decoration-none"
+                                            data-bs-dismiss="modal">إلغاء</button>
+                                        <button type="submit" class="btn btn-primary px-5 rounded-pill fw-bold">حفظ
+                                            التعليمات</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Edit Modal -->
+                    <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                            <div class="modal-content"
+                                style="background: #1e293b; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+                                <div class="modal-header border-bottom border-secondary border-opacity-25">
+                                    <h5 class="modal-title text-white fw-bold">تعديل التعليمات</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
+                                </div>
+                                <form action="/dashboard/instructions/edit" method="POST">
+                                    <input type="hidden" name="id" id="editId">
+                                    <div class="modal-body p-4">
+                                        <div class="mb-4">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <label class="form-label text-white fw-bold m-0">التصنيف / الفئة</label>
+                                                <span class="info-btn" data-bs-toggle="popover" tabindex="0"
+                                                    title="التصنيف" data-bs-html="true"
+                                                    data-bs-content="استخدم اسم واضح يسهل عليك إدارة التعليمات لاحقاً.<br><br><b>أمثلة:</b><ul class='helper-example-list'><li>✅ منيو الاكل</li><li>✅ أسعار التوصيل</li><li>✅ سياسة الترجيع</li></ul>">?</span>
+                                            </div>
+                                            <input type="text" name="clientName" id="editClientName"
+                                                class="form-control form-control-lg bg-dark text-white border-secondary"
+                                                required placeholder="مثال: أسعار الملابس، معلومات الشحن">
+                                        </div>
+                                        <div class="mb-4">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <label class="form-label text-white fw-bold m-0">محتوى التعليمات</label>
+                                                <span class="info-btn" data-bs-toggle="popover" tabindex="0"
+                                                    title="المحتوى" data-bs-html="true"
+                                                    data-bs-content="تأكد من تحديث الأسعار والمواصفات بشكل دقيق.<br><br><b>أمثلة:</b><ul class='helper-example-list'><li>1️⃣ متاح مقاسات من M لـ XXL.</li><li>2️⃣ سعر الكيلو 150ج وعندنا عرض 2 كيلو بـ 250ج.</li><li>3️⃣ الشحن مجاني لأي أوردر فوق الـ 500ج.</li></ul>">?</span>
+                                            </div>
+                                            <textarea name="content" id="editContent"
+                                                class="form-control bg-dark text-white border-secondary" required
+                                                placeholder="اكتب كل التفاصيل اللي عايز البوت يعرفها هنا.&#10;مثال:&#10;- سعر التيشرت 200ج والمقاسات من L لـ XXL.&#10;- الشحن بياخد 3 أيام ومجاني لو اشتريت بـ 1000ج.&#10;- عندنا فرع في المهندسين وفرع في التجمع."
+                                                style="min-height: 250px;"></textarea>
+                                        </div>
+
+                                        <!-- Image Gallery Section for Edit -->
+                                        <div class="mb-4">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <label class="form-label text-white fw-bold m-0">🖼️ صور مرفقة (مع
+                                                    وصف)</label>
+                                                <span class="info-btn" data-bs-toggle="popover" tabindex="0"
+                                                    title="وصف الصور" data-bs-html="true"
+                                                    data-bs-content="اكتب وصف دقيق لكل صورة عشان البوت يعرف يختارها لما العميل يطلبها.<br><br><b>أمثلة للأوصاف:</b><ul class='helper-example-list'><li>✅ صورة الفستان الأحمر</li><li>✅ خريطة فروع مدينة نصر</li><li>✅ جدول المقاسات والشحن</li></ul>">?</span>
+                                            </div>
+
+                                            <!-- Hidden input to store JSON data -->
+                                            <input type="hidden" name="imageUrl" id="editImageUrlJson">
+
+                                            <!-- Gallery Container -->
+                                            <div id="editImagesContainer" class="d-flex flex-column gap-3 mb-3">
+                                                <!-- Images will be added here via JS -->
+                                            </div>
+
+                                            <!-- Add Button -->
+                                            <div class="d-flex gap-2 align-items-center">
+                                                <button type="button" id="editMoreImagesBtn"
+                                                    class="btn btn-outline-secondary border-dashed flex-grow-1 py-2 text-white-50">
+                                                    <span class="me-1">➕</span> إضافة صورة
+                                                </button>
+                                                <span class="spinner-border spinner-border-sm text-light d-none"
+                                                    id="editUploadSpinner"></span>
+                                                <span id="editUploadStatus" class="small text-white-50"></span>
+                                            </div>
+
+                                            <!-- Hidden File Input -->
+                                            <input type="file" id="editGalleryInput" accept="image/*" class="d-none">
+
+                                            <div class="form-text text-white-50 mt-2">يمكنك تعديل الأوصاف أو حذف صور أو
+                                                إضافة صور جديدة.</div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <label class="form-label text-white fw-bold m-0">🎯 إرسال الطلب إلى
+                                                    (Action Target)</label>
+                                                <span class="info-btn" data-bs-toggle="popover" tabindex="0"
+                                                    title="توجيه الطلبات" data-bs-html="true"
+                                                    data-bs-content="لو العميل سأل على حاجة وعايزه يطلبها، البوت هيبعت بيانات العميل للجروب ده.<br><br><b>أمثلة للجروبات:</b><ul class='helper-example-list'><li>✅ جروب المبيعات</li><li>✅ جروب طلبات الصيانة</li><li>✅ جروب الإدارة</li></ul>">?</span>
+                                            </div>
+                                            <div class="input-group shadow-sm">
+                                                <select name="actionTarget" id="editActionTarget"
+                                                    class="form-select form-select-lg bg-dark text-white border-secondary">
+                                                    <option value="">-- اختر الجروب --</option>
+                                                    <% if (typeof groups !=='undefined' && groups.length> 0) { %>
+                                                        <% groups.forEach(group=> { %>
+                                                            <option value="<%= group.subject %>">
+                                                                <%= group.subject %>
+                                                            </option>
+                                                            <% }); %>
+                                                                <% } else { %>
+                                                                    <option value="" disabled>⚠️ يجب ربط الواتساب لإظهار
+                                                                        الجروبات</option>
+                                                                    <% } %>
+                                                </select>
+                                                <button class="btn btn-secondary border-secondary px-3" type="button"
+                                                    id="refreshEditGroupsBtn" title="تحديث الجروبات"
+                                                    onclick="refreshGroups()">
+                                                    🔄
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer border-top border-secondary border-opacity-25">
+                                        <button type="button" class="btn btn-link text-white-50 text-decoration-none"
+                                            data-bs-dismiss="modal">إلغاء</button>
+                                        <button type="submit" class="btn btn-primary px-5 rounded-pill fw-bold">حفظ
+                                            التعديلات</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Loading Overlay -->
+                    <div id="loadingOverlay"
+                        class="d-none position-fixed top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center align-items-center"
+                        style="background: rgba(0, 0, 0, 0.85); z-index: 9999; backdrop-filter: blur(5px);">
+                        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <h4 class="text-white fw-bold animate-pulse">جاري تحليل التعليمات وتقسيمها بالذكاء الاصطناعي...
+                        </h4>
+                        <p class="text-white-50">لحظات ويتم تجهيز الردود الذكية 🧠</p>
+                    </div>
+
+                    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+                    <script src="/instructions-image-upload.js"></script>
+                    <script>
+                        // Initialize Bootstrap Popovers
+                        document.addEventListener('DOMContentLoaded', function () {
+                            var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+                            var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+                                return new bootstrap.Popover(popoverTriggerEl, {
+                                    trigger: 'focus'
+                                })
+                            })
+
+                            // Handle Form Submissions for Loading State
+                            const forms = document.querySelectorAll('form[action="/dashboard/instructions/add"], form[action="/dashboard/instructions/edit"]');
+                            const overlay = document.getElementById('loadingOverlay');
+
+                            forms.forEach(form => {
+                                form.addEventListener('submit', function () {
+                                    const modal = bootstrap.Modal.getInstance(this.closest('.modal'));
+                                    if (modal) modal.hide();
+
+                                    overlay.classList.remove('d-none');
+                                });
+                            });
+                        });
+                    </script>
+</body>
+
+</html>

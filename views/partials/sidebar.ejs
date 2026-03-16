@@ -1,0 +1,276 @@
+<div id="sidebar" class="fancy-sidebar">
+    <div class="sidebar-header text-center">
+        <img src="/lina_logo.jpg" alt="Lina" class="sidebar-logo rounded-circle border border-primary border-2 shadow">
+    </div>
+    <ul class="sidebar-menu">
+        <!-- Home -->
+        <li class="sidebar-item <%= page === 'home' ? 'active' : '' %>">
+            <a href="/dashboard" class="sidebar-link">
+                <div class="sidebar-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+                        viewBox="0 0 16 16">
+                        <path
+                            d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3A1.5 1.5 0 0 1 15 10.5v3A1.5 1.5 0 0 1 13.5 15h-3A1.5 1.5 0 0 1 9 13.5v-3z" />
+                    </svg>
+                </div>
+                <span class="sidebar-label">الرئيسية</span>
+            </a>
+        </li>
+
+        <!-- Chats -->
+        <li class="sidebar-item <%= page === 'chats' ? 'active' : '' %>">
+            <a href="/dashboard/chats" class="sidebar-link">
+                <div class="sidebar-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+                        viewBox="0 0 16 16">
+                        <path
+                            d="M16 8c0 3.866-3.582 7-8 7a9.06 9.06 0 0 1-2.347-.306c-.584.296-1.925.864-4.181 1.234-.2.032-.352-.176-.273-.362.354-.836.674-1.95.77-2.966C.744 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7zM4.5 5a.5.5 0 0 0 0 1h7a.5.5 0 0 0 0-1h-7zm0 2.5a.5.5 0 0 0 0 1h7a.5.5 0 0 0 0-1h-7zm0 2.5a.5.5 0 0 0 0 1h4a.5.5 0 0 0 0-1h-4z" />
+                    </svg>
+                </div>
+                <span class="sidebar-label">المحادثات</span>
+            </a>
+        </li>
+
+        <!-- Instructions -->
+        <li class="sidebar-item <%= page === 'instructions' ? 'active' : '' %>">
+            <a href="/dashboard/instructions" class="sidebar-link">
+                <div class="sidebar-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+                        viewBox="0 0 16 16">
+                        <path
+                            d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0zM9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1zM4.5 9a.5.5 0 0 1 0-1h7a.5.5 0 0 1 0 1h-7zM4 10.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm.5 2.5a.5.5 0 0 1 0-1h4a.5.5 0 0 1 0 1h-4z" />
+                    </svg>
+                </div>
+                <span class="sidebar-label">التعليمات</span>
+            </a>
+        </li>
+
+        <!-- Profile -->
+        <li class="sidebar-item <%= page === 'profile' ? 'active' : '' %>">
+            <a href="/dashboard/profile" class="sidebar-link">
+                <div class="sidebar-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+                        viewBox="0 0 16 16">
+                        <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+                        <path fill-rule="evenodd"
+                            d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z" />
+                    </svg>
+                </div>
+                <span class="sidebar-label">الملف الشخصي</span>
+            </a>
+        </li>
+
+        <!-- Privacy Policy -->
+        <li class="sidebar-item <%= page === 'privacy' ? 'active' : '' %>">
+            <a href="/dashboard/privacy" class="sidebar-link">
+                <div class="sidebar-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+                        class="bi bi-shield-lock" viewBox="0 0 16 16">
+                        <path
+                            d="M5.338 1.59a61.44 61.44 0 0 0-2.837.856.481.481 0 0 0-.328.39c-.554 4.157.726 7.19 2.253 9.188a10.725 10.725 0 0 0 2.287 2.233c.346.244.652.42.893.533.12.057.218.095.293.118a.55.55 0 0 0 .101.025.615.615 0 0 0 .1-.025c.076-.023.174-.061.294-.118.24-.113.547-.29.893-.533a10.726 10.726 0 0 0 2.287-2.233c1.527-1.997 2.807-5.031 2.253-9.188a.48.48 0 0 0-.328-.39c-.651-.213-1.75-.56-2.837-.855C9.552 1.29 8.531 1.067 8 1.067c-.53 0-1.552.223-2.662.524zM5.072.56C6.157.265 7.31 0 8 0s1.843.265 2.928.56c1.11.3 2.229.655 2.887.87a1.54 1.54 0 0 0 1.044 1.262c.596 4.477-.787 7.795-2.465 9.99a11.775 11.775 0 0 0-4.231 4.153.366.366 0 0 0-.164.125c-.146.151-.432.176-.713.064a.366.366 0 0 0-.164-.125 11.777 11.777 0 0 0-4.231-4.153C1.678 10.457.295 7.139.89 2.662a1.54 1.54 0 0 0-1.044-1.263 62.467 62.467 0 0 0-2.887-.87z" />
+                        <path d="M8.5 5.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0zM8 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" />
+                    </svg>
+                </div>
+                <span class="sidebar-label">الأمان والخصوصية</span>
+            </a>
+        </li>
+    </ul>
+
+    <div class="sidebar-footer">
+        <div class="sidebar-version">
+            <span class="sidebar-label">Agent 2.0</span>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Fancy Sidebar Styles */
+    .fancy-sidebar {
+        position: fixed;
+        right: 20px;
+        top: 100px;
+        bottom: 20px;
+        width: 70px;
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        padding: 1rem 0.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        gap: 20px;
+        z-index: 1000;
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+    }
+
+    .sidebar-menu {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .sidebar-item {
+        width: 100%;
+        overflow: hidden;
+        border-radius: 12px;
+        border-left: 2px solid transparent;
+        background: transparent;
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .sidebar-item:hover,
+    .sidebar-item:focus-within {
+        background: rgba(255, 255, 255, 0.05);
+        border-left-color: var(--primary-color);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .sidebar-item.active {
+        background: rgba(99, 102, 241, 0.2);
+        border-left-color: var(--primary-color);
+    }
+
+    .sidebar-link {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        text-decoration: none;
+        color: #f8fafc;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+    }
+
+    .sidebar-link:hover {
+        color: var(--primary-color);
+        transform: translateX(-2px);
+    }
+
+    .sidebar-icon {
+        min-width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        border: 2px solid rgba(99, 102, 241, 0.3);
+        background: rgba(99, 102, 241, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .sidebar-item.active .sidebar-icon {
+        background: rgba(99, 102, 241, 0.3);
+        border-color: rgba(99, 102, 241, 0.5);
+    }
+
+    .sidebar-item:hover .sidebar-icon {
+        background: rgba(99, 102, 241, 0.2);
+        transform: scale(1.05);
+    }
+
+    .sidebar-label {
+        font-weight: 600;
+        font-size: 14px;
+        opacity: 0;
+        transform: translateX(10px);
+        transition: all 0.3s ease;
+        display: none;
+    }
+
+    .sidebar-footer {
+        text-align: center;
+        padding: 8px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        margin-top: auto;
+    }
+
+    .sidebar-version {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .sidebar-version .sidebar-label {
+        display: none;
+    }
+
+    /* Hover/Focus Expansion */
+    .fancy-sidebar:hover,
+    .fancy-sidebar:focus-within {
+        width: 260px;
+    }
+
+    .fancy-sidebar:hover .sidebar-label,
+    .fancy-sidebar:focus-within .sidebar-label {
+        opacity: 1;
+        transform: translateX(0);
+        display: inline;
+    }
+
+    .fancy-sidebar:hover .sidebar-version .sidebar-label,
+    .fancy-sidebar:focus-within .sidebar-version .sidebar-label {
+        display: inline;
+    }
+
+    /* Sidebar Logo Styles */
+    .sidebar-header {
+        padding: 0.2rem;
+        margin-bottom: 0px;
+        /* Remove the gap */
+        transition: all 0.3s ease;
+    }
+
+    .sidebar-logo {
+        width: 48px;
+        height: 48px;
+        object-fit: contain;
+        background: #000;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .sidebar-brand-name {
+        margin-top: 10px;
+        color: var(--primary-color);
+        font-size: 1.2rem;
+        letter-spacing: 2px;
+        text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+    }
+
+    .fancy-sidebar:hover .sidebar-logo {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 1rem;
+    }
+
+    /* Mobile Styles */
+    @media (max-width: 992px) {
+        .fancy-sidebar {
+            right: -320px;
+            top: 80px;
+            width: 280px;
+            height: calc(100vh - 100px);
+        }
+
+        .fancy-sidebar .sidebar-label {
+            opacity: 1;
+            transform: translateX(0);
+            display: inline;
+        }
+
+        .fancy-sidebar .sidebar-version .sidebar-label {
+            display: inline;
+        }
+
+        .fancy-sidebar.mobile-active {
+            right: 10px;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+        }
+    }
+</style>

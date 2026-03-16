@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الماسنجر - Lina Bot</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="/style.css" rel="stylesheet">
+    <style>
+        .page-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            transition: all 0.3s;
+        }
+        .page-card:hover { background: rgba(255,255,255,0.08); }
+        .convo-card {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .convo-card:hover { background: rgba(255,255,255,0.05); transform: translateX(-3px); }
+        .messenger-badge { background: linear-gradient(135deg, #0866ff, #a855f7); }
+        .setup-step { background: rgba(8,102,255,0.1); border: 1px solid rgba(8,102,255,0.25); border-radius: 12px; }
+        #toast-container { position: fixed; bottom: 20px; left: 20px; z-index: 9999; }
+        .copy-btn { cursor: pointer; font-size: 0.75rem; }
+        .copy-btn:hover { color: #0dcaf0; }
+    </style>
+</head>
+<body>
+    <%- include('partials/navbar') %>
+    <%- include('partials/sidebar') %>
+
+    <div class="container-fluid main-content px-4 px-lg-5">
+
+        <!-- Header -->
+        <div class="glass-card p-4 mb-4 animate-fade-in">
+            <div class="d-flex align-items-center gap-3 mb-2">
+                <div class="p-2 rounded-3 messenger-badge">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="white" viewBox="0 0 24 24">
+                        <path d="M12 0C5.4 0 0 4.98 0 11.1c0 3.498 1.744 6.615 4.477 8.653V24l4.086-2.242c1.09.301 2.246.463 3.437.463 6.6 0 12-4.98 12-11.1C24 4.98 18.6 0 12 0zm1.191 14.963L10.1 11.71l-6.044 3.29 6.647-7.055L13.9 11.2l3.106-3.256-6.815 7.02z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h4 class="fw-bold mb-0 text-white">إدارة الماسنجر 💬</h4>
+                    <p class="text-secondary small mb-0">اربط صفحات الفيسبوك وردّ على العملاء بالذكاء الاصطناعي</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+
+            <!-- Left Column: Setup + Pages -->
+            <div class="col-lg-5">
+
+                <!-- Webhook Setup Card -->
+                <div class="glass-card p-4 mb-4">
+                    <h6 class="fw-bold text-white mb-3">⚙️ إعداد الـ Webhook في Meta</h6>
+                    <div class="setup-step p-3 mb-3">
+                        <p class="text-white-50 small mb-2">1️⃣ افتح التطبيق في <strong class="text-white">Meta Developer</strong> تبع (bird ads)</p>
+                        <p class="text-white-50 small mb-2">2️⃣ من القائمة اليسار اختر <strong class="text-white">Messenger > Settings</strong></p>
+                        <p class="text-white-50 small mb-2">3️⃣ في قسم <strong class="text-white">Webhooks</strong> اضغط Add Callback URL وحط الرابط ده:</p>
+
+                        <div class="d-flex align-items-center gap-2 bg-dark rounded-3 p-2 mt-2 mb-3">
+                            <code class="text-info small flex-grow-1 text-break" dir="ltr" id="webhook-url-display"><%= webhookUrl %></code>
+                            <button class="btn btn-sm btn-outline-info copy-btn" onclick="copyText('<%= webhookUrl %>', this)">نسخ</button>
+                        </div>
+
+                        <p class="text-white-50 small mb-2">4️⃣ في <strong class="text-white">Verify Token</strong> حط:</p>
+                        <div class="d-flex align-items-center gap-2 bg-dark rounded-3 p-2 mb-3">
+                            <code class="text-warning small flex-grow-1" dir="ltr" id="verify-token-display"><%= verifyToken %></code>
+                            <button class="btn btn-sm btn-outline-warning copy-btn" onclick="copyText('<%= verifyToken %>', this)">نسخ</button>
+                        </div>
+
+                        <p class="text-white-50 small mb-1">5️⃣ فعّل صلاحيات <strong class="text-white">messages</strong> و <strong class="text-white">messaging_postbacks</strong></p>
+                    </div>
+                </div>
+
+                <!-- Connect Page Card -->
+                <div class="glass-card p-4 mb-4">
+                    <h6 class="fw-bold text-white mb-3">➕ ربط صفحة جديدة</h6>
+                    <form id="connect-form">
+                        <div class="mb-3">
+                            <label class="form-label text-white-50 small">اسم الصفحة</label>
+                            <input type="text" id="page-name" class="form-control bg-dark text-white border-secondary" placeholder="مثال: متجر الملابس">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-white-50 small">Page ID (معرف الصفحة)</label>
+                            <input type="text" id="page-id" class="form-control bg-dark text-white border-secondary" placeholder="مثال: 107xxxxxxxx" dir="ltr">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-white-50 small">Page Access Token</label>
+                            <textarea id="access-token" class="form-control bg-dark text-white border-secondary" rows="2" placeholder="EAAxxxxxxxx..." dir="ltr"></textarea>
+                            <div class="form-text text-white-50 mt-1">
+                                📌 لجيب الـ Access Token: Meta Developer → Messenger → Settings → Generate Token
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 rounded-pill">
+                            🔗 ربط الصفحة
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Pages List -->
+                <div class="glass-card p-4">
+                    <h6 class="fw-bold text-white mb-3">📑 الصفحات المربوطة</h6>
+                    <div id="pages-list">
+                        <div class="text-center text-white-50 py-3">
+                            <div class="spinner-border spinner-border-sm mb-2"></div>
+                            <p class="small mb-0">جاري التحميل...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Conversations -->
+            <div class="col-lg-7">
+                <div class="glass-card p-4 h-100">
+                    <div class="d-flex align-items-center justify-content-between mb-4">
+                        <h6 class="fw-bold text-white mb-0" id="convos-title">💬 اختر صفحة لعرض المحادثات</h6>
+                        <select id="page-filter" class="form-select form-select-sm bg-dark text-white border-secondary" style="width: auto; display:none;">
+                            <option value="">-- اختر صفحة --</option>
+                        </select>
+                    </div>
+                    <div id="convos-list">
+                        <div class="text-center py-5">
+                            <div style="font-size:3rem;">💬</div>
+                            <p class="text-white-50 mt-2">اختر صفحة لعرض المحادثات</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Modal -->
+    <div class="modal fade" id="summaryModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-card border-secondary">
+                <div class="modal-header border-secondary border-opacity-25">
+                    <h5 class="modal-title text-white">📋 ملخص المحادثة</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="summary-content" class="text-white-50">جاري التحميل...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showToast(msg, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type} shadow mb-2`;
+            toast.innerText = msg;
+            document.getElementById('toast-container').appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function copyText(text, btn) {
+            navigator.clipboard.writeText(text).then(() => {
+                const orig = btn.innerText;
+                btn.innerText = '✓';
+                btn.classList.add('btn-success');
+                setTimeout(() => { btn.innerText = orig; btn.classList.remove('btn-success'); }, 1500);
+            });
+        }
+
+        // ======= Load Pages =======
+        async function loadPages() {
+            const res = await fetch('/api/messenger/pages');
+            const data = await res.json();
+            const list = document.getElementById('pages-list');
+            const filter = document.getElementById('page-filter');
+
+            if (!data.pages || data.pages.length === 0) {
+                list.innerHTML = '<p class="text-white-50 text-center small py-2">لا توجد صفحات مربوطة بعد</p>';
+                return;
+            }
+
+            filter.style.display = 'block';
+            filter.innerHTML = '<option value="">-- اختر صفحة --</option>' +
+                data.pages.map(p => `<option value="${p.pageId}">${p.pageName}</option>`).join('');
+
+            list.innerHTML = data.pages.map(page => `
+                <div class="page-card p-3 mb-2 d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="fw-bold text-white">${page.pageName}</div>
+                        <code class="text-white-50 small" dir="ltr">${page.pageId}</code>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge ${page.isActive ? 'bg-success' : 'bg-secondary'}">${page.isActive ? 'نشطة' : 'غير نشطة'}</span>
+                        <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="disconnectPage('${page.pageId}')">حذف</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ======= Connect Page =======
+        document.getElementById('connect-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const pageName = document.getElementById('page-name').value.trim();
+            const pageId = document.getElementById('page-id').value.trim();
+            const accessToken = document.getElementById('access-token').value.trim();
+
+            if (!pageName || !pageId || !accessToken) return showToast('يرجى ملء جميع الحقول', 'danger');
+
+            const btn = e.target.querySelector('button[type=submit]');
+            btn.disabled = true;
+            btn.innerText = 'جاري الربط...';
+
+            const res = await fetch('/api/messenger/connect', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pageName, pageId, accessToken })
+            });
+            const data = await res.json();
+
+            btn.disabled = false;
+            btn.innerText = '🔗 ربط الصفحة';
+
+            if (data.success) {
+                showToast(data.message);
+                e.target.reset();
+                loadPages();
+            } else {
+                showToast(data.message || 'حدث خطأ', 'danger');
+            }
+        });
+
+        // ======= Disconnect Page =======
+        async function disconnectPage(pageId) {
+            if (!confirm('هل أنت متأكد من إلغاء ربط هذه الصفحة؟')) return;
+            const res = await fetch(`/api/messenger/page/${pageId}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) { showToast('تم إلغاء ربط الصفحة'); loadPages(); }
+        }
+
+        // ======= Load Conversations =======
+        document.getElementById('page-filter').addEventListener('change', async (e) => {
+            const pageId = e.target.value;
+            if (!pageId) return;
+
+            document.getElementById('convos-title').innerText = '💬 المحادثات';
+            document.getElementById('convos-list').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+
+            const res = await fetch(`/api/messenger/conversations/${pageId}`);
+            const data = await res.json();
+            const list = document.getElementById('convos-list');
+
+            if (!data.conversations || data.conversations.length === 0) {
+                list.innerHTML = '<div class="text-center py-5"><div style="font-size:2rem">📭</div><p class="text-white-50 mt-2">لا توجد محادثات بعد</p></div>';
+                return;
+            }
+
+            list.innerHTML = data.conversations.map(c => {
+                const date = new Date(c.lastMessageAt).toLocaleString('ar-EG', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
+                const convId = `msng_${c.pageId}_${c.senderId}`;
+                return `
+                    <div class="convo-card p-3 mb-2" onclick="showSummary('${convId}', '${c.senderName}')">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold messenger-badge"
+                                     style="width:40px;height:40px;font-size:1rem;">${c.senderName.charAt(0)}</div>
+                                <div>
+                                    <div class="fw-bold text-white small">${c.senderName}</div>
+                                    <div class="text-white-50" style="font-size:0.7rem;">${date}</div>
+                                </div>
+                            </div>
+                            <div class="d-flex flex-column align-items-end gap-1">
+                                <span class="badge bg-primary">${c.messageCount} رسالة</span>
+                                <span class="text-white-50" style="font-size:0.7rem;">📋 ملخص AI</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        });
+
+        // ======= Show AI Summary =======
+        const summaryModal = new bootstrap.Modal(document.getElementById('summaryModal'));
+        async function showSummary(conversationId, name) {
+            document.getElementById('summary-content').innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm mb-2"></div><p>جاري توليد الملخص بالذكاء الاصطناعي...</p></div>';
+            summaryModal.show();
+            const res = await fetch(`/api/messenger/summary/${conversationId}`);
+            const data = await res.json();
+            document.getElementById('summary-content').innerHTML = data.summary
+                ? `<div class="bg-dark rounded-3 p-3">${data.summary.replace(/\n/g, '<br>')}</div>`
+                : '<div class="text-danger">لا يوجد محادثات كافية لعمل ملخص</div>';
+        }
+
+        // Init
+        loadPages();
+    </script>
+</body>
+</html>

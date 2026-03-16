@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Environment Variables (لا ترفعها أبداً!)
+.env
+.env.local
+.env.production
+
+# WhatsApp Sessions (حساسة ومش لازم ترفعها)
+sessions/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Build outputs
+dist/
+build/
