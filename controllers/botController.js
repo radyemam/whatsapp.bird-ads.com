@@ -10,6 +10,7 @@ import User from '../models/User.js';
 import Message from '../models/Message.js';
 import Instruction from '../models/Instruction.js';
 import { Op, Sequelize } from 'sequelize';
+import { GoogleAuth } from 'google-auth-library';
 
 // V6_STABLE_VERSION
 console.log("✅ [V6_SIGNATURE] botController.js Loaded");
@@ -147,7 +148,8 @@ async function callVertexAI(remoteJid, userText, mediaBuffer = null, mediaMime =
     const contents = history;
 
     // Vertex AI URL
-    const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${CONFIG.PROJECT_ID}/locations/us-central1/publishers/google/models/${CONFIG.MODEL_NAME}:generateContent?key=${CONFIG.USER_KEY}`;
+    const location = 'us-central1';
+    const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${CONFIG.PROJECT_ID}/locations/${location}/publishers/google/models/${CONFIG.MODEL_NAME}:generateContent`;
 
     const payload = {
         contents: contents,
@@ -157,9 +159,21 @@ async function callVertexAI(remoteJid, userText, mediaBuffer = null, mediaMime =
     };
 
     try {
+        // Initialize auth with Service Account credentials
+        const auth = new GoogleAuth({
+            keyFilename: CONFIG.GOOGLE_CREDENTIALS || process.env.GOOGLE_APPLICATION_CREDENTIALS || 'trim-bot-486500-h8-4b614b18f7c0.json',
+            scopes: ['https://www.googleapis.com/auth/cloud-platform']
+        });
+
+        const client = await auth.getClient();
+        const accessToken = await client.getAccessToken();
+
         const response = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken.token}`
+            },
             body: JSON.stringify(payload)
         });
 

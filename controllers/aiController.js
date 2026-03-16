@@ -1,7 +1,9 @@
 import { CONFIG } from '../config.js';
+import { GoogleAuth } from 'google-auth-library';
 
 async function callVertexAI(prompt) {
-    const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${CONFIG.PROJECT_ID}/locations/us-central1/publishers/google/models/${CONFIG.MODEL_NAME}:generateContent?key=${CONFIG.USER_KEY}`;
+    const location = 'us-central1';
+    const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${CONFIG.PROJECT_ID}/locations/${location}/publishers/google/models/${CONFIG.MODEL_NAME}:generateContent`;
 
     const payload = {
         contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -14,9 +16,20 @@ async function callVertexAI(prompt) {
     };
 
     try {
+        const auth = new GoogleAuth({
+            keyFilename: CONFIG.GOOGLE_CREDENTIALS || process.env.GOOGLE_APPLICATION_CREDENTIALS || 'trim-bot-486500-h8-4b614b18f7c0.json',
+            scopes: ['https://www.googleapis.com/auth/cloud-platform']
+        });
+
+        const client = await auth.getClient();
+        const accessToken = await client.getAccessToken();
+
         const response = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken.token}`
+            },
             body: JSON.stringify(payload)
         });
 

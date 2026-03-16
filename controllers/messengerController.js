@@ -5,6 +5,7 @@ import Instruction from '../models/Instruction.js';
 import MessengerPage from '../models/MessengerPage.js';
 import MessengerConversation from '../models/MessengerConversation.js';
 import Message from '../models/Message.js';
+import { GoogleAuth } from 'google-auth-library';
 
 // الـ Verify Token اللي بنستخدمه مع ميتا
 const VERIFY_TOKEN = 'lina_messenger_verify_2024';
@@ -120,7 +121,7 @@ async function processMessengerMessage(pageId, senderId, messageText) {
         await Message.create({
             UserId: userId,
             remoteJid: conversationId,
-            role: 'assistant',
+            role: 'model', // Fixed from 'assistant' to 'model'
             content: aiReply
         });
 
@@ -175,22 +176,42 @@ async function callVertexAIForMessenger(userId, senderId, userText, conversation
 
         const prompt = `${systemInstructions}\n\nسياق المحادثة السابقة:\n${historyText}\n\nالعميل: ${userText}\nالمساعد:`;
 
-        // استدعي الـ API
-        const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${CONFIG.PROJECT_ID}/locations/us-central1/publishers/google/models/${CONFIG.MODEL_NAME}:generateContent?key=${CONFIG.USER_KEY}`;
+        // Vertex AI URL (uses Service Account authentication)
+        const location = 'us-central1';
+        const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${CONFIG.PROJECT_ID}/locations/${location}/publishers/google/models/${CONFIG.MODEL_NAME}:generateContent`;
+
+        const payload = {
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: {
+                temperature: 0.7,
+                topK: 40,
+                topP: 0.95,
+                maxOutputTokens: 1024,
+            }
+        };
+
+        // Initialize auth with Service Account credentials
+        const auth = new GoogleAuth({
+            keyFilename: CONFIG.GOOGLE_CREDENTIALS || process.env.GOOGLE_APPLICATION_CREDENTIALS || 'trim-bot-486500-h8-4b614b18f7c0.json',
+            scopes: ['https://www.googleapis.com/auth/cloud-platform']
+        });
+
+        const client = await auth.getClient();
+        const accessToken = await client.getAccessToken();
 
         const response = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ role: "user", parts: [{ text: prompt }] }],
-                generationConfig: {
-                    temperature: 0.7,
-                    topK: 40,
-                    topP: 0.95,
-                    maxOutputTokens: 1024,
-                }
-            })
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken.token}`
+            },
+            body: JSON.stringify(payload)
         });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Vertex API Error: ${response.status} ${errText}`);
+        }
 
         const data = await response.json();
         return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
@@ -242,11 +263,23 @@ export async function generateConversationSummary(userId, conversationId) {
             `${msg.role === 'user' ? 'العميل' : 'البوت'}: ${msg.content}`
         ).join('\n');
 
-        const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${CONFIG.PROJECT_ID}/locations/us-central1/publishers/google/models/${CONFIG.MODEL_NAME}:generateContent?key=${CONFIG.USER_KEY}`;
+        const location = 'us-central1';
+        const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${CONFIG.PROJECT_ID}/locations/${location}/publishers/google/models/${CONFIG.MODEL_NAME}:generateContent`;
+
+        const auth = new GoogleAuth({
+            keyFilename: CONFIG.GOOGLE_CREDENTIALS || process.env.GOOGLE_APPLICATION_CREDENTIALS || 'trim-bot-486500-h8-4b614b18f7c0.json',
+            scopes: ['https://www.googleapis.com/auth/cloud-platform']
+        });
+
+        const client = await auth.getClient();
+        const accessToken = await client.getAccessToken();
 
         const response = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken.token}`
+            },
             body: JSON.stringify({
                 contents: [{
                     role: "user",
