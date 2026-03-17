@@ -109,8 +109,9 @@ router.get('/instructions', async (req, res) => {
 });
 
 import { analyzeAndSegmentText, generateKeywords } from '../controllers/aiController.js';
-
-// ... (existing imports)
+import SimulationMessage from '../models/SimulationMessage.js';
+import TeachMessage from '../models/TeachMessage.js';
+import { simulateChat, teachBot } from '../controllers/botController.js';
 
 router.post('/instructions/add', async (req, res) => {
     try {
@@ -248,6 +249,115 @@ router.post('/chats/delete', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).send("Error deleting chat");
+    }
+});
+
+// ============================================
+// Training / Simulator Routes (المرحلة الثالثة)
+// ============================================
+
+router.get('/training', async (req, res) => {
+    try {
+        const messages = await SimulationMessage.findAll({
+            where: { UserId: req.user.id },
+            order: [['createdAt', 'ASC']]
+        });
+        
+        const teachMessages = await TeachMessage.findAll({
+            where: { UserId: req.user.id },
+            order: [['createdAt', 'ASC']]
+        });
+
+        // Count tokens
+        const user = await User.findByPk(req.user.id);
+        const tokensUsed = user.total_tokens || 0;
+
+        res.render('training', { 
+            user: req.user, 
+            page: 'training',
+            messages,
+            teachMessages,
+            tokensUsed
+        });
+    } catch (err) {
+        console.error("Training page error:", err);
+        res.status(500).send("Error loading training page");
+    }
+});
+
+router.post('/training/send', async (req, res) => {
+    try {
+        const { message } = req.body;
+        if (!message) return res.status(400).json({ error: "Message is required" });
+
+        // Save User Message to Training DB
+        const savedMessage = await SimulationMessage.create({
+            role: 'user',
+            content: message,
+            UserId: req.user.id
+        });
+
+        // Get AI Reply
+        const aiReply = await simulateChat(req.user.id, message);
+
+        // Save AI Reply to Training DB
+        let aiSavedMessage = null;
+        if (aiReply) {
+            aiSavedMessage = await SimulationMessage.create({
+                role: 'model',
+                content: aiReply,
+                UserId: req.user.id
+            });
+        }
+
+        res.json({ success: true, aiReply: aiSavedMessage });
+    } catch (err) {
+        console.error("Training send error:", err);
+        res.status(500).json({ error: "Failed to send message" });
+    }
+});
+
+router.post('/training/clear', async (req, res) => {
+    try {
+        await SimulationMessage.destroy({
+            where: { UserId: req.user.id }
+        });
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Training clear error:", err);
+        res.status(500).json({ error: "Failed to clear chat" });
+    }
+});
+
+// Teach Bot Routes
+router.post('/training/teach', async (req, res) => {
+    try {
+        const { message } = req.body;
+        if (!message) return res.status(400).json({ error: "Message is required" });
+
+        await TeachMessage.create({ role: 'user', content: message, UserId: req.user.id });
+
+        const aiReply = await teachBot(req.user.id, message);
+
+        let aiSavedMessage = null;
+        if (aiReply) {
+            aiSavedMessage = await TeachMessage.create({ role: 'model', content: aiReply, UserId: req.user.id });
+        }
+
+        res.json({ success: true, aiReply: aiSavedMessage });
+    } catch (err) {
+        console.error("Teach send error:", err);
+        res.status(500).json({ error: "Failed to send message" });
+    }
+});
+
+router.post('/training/clear-teach', async (req, res) => {
+    try {
+        await TeachMessage.destroy({ where: { UserId: req.user.id } });
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Teach clear error:", err);
+        res.status(500).json({ error: "Failed to clear chat" });
     }
 });
 

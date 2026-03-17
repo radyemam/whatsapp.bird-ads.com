@@ -23,6 +23,8 @@ import Message from './models/Message.js';
 import Instruction from './models/Instruction.js';
 import MessengerPage from './models/MessengerPage.js';
 import MessengerConversation from './models/MessengerConversation.js';
+import SimulationMessage from './models/SimulationMessage.js';
+import TeachMessage from './models/TeachMessage.js';
 
 // Routes
 import authRoutes from './routes/auth.js';
@@ -146,8 +148,8 @@ sequelize.sync().then(async () => {
 
     httpServer.listen(PORT, () => {
         console.log(`🚀 [V6_SIGNATURE] Server running on http://localhost:${PORT}`);
-        // ⚠️ مؤقتاً موقوف عشان الاختبار المحلي - فعّله تاني لما ترفع على السيرفر
-        // restoreSessions(io);
+        // ⚠️ تم التفعيل بناءً على طلبك لتعمل على السيرفر (ممكن توقفها محلياً لو بتعمل تيست)
+        restoreSessions(io);
 
         // Initial Checks
         checkSubscriptionExpiry(io);

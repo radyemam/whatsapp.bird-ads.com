@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التدريب والمحاكاة الذكية</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="/style.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<body>
+    <%- include('partials/navbar') %>
+    <%- include('partials/sidebar') %>
+
+<style>
+    .training-wrapper {
+        display: flex;
+        flex-direction: row;
+        height: 65vh; /* تقليل الطول ليكون متناسب مع الشاشة */
+        min-height: 400px;
+        margin-top: 20px;
+        gap: 20px;
+    }
+    .training-chat-container {
+        flex: 3;
+        background: #1e1e2d;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid #323248;
+        overflow: hidden;
+    }
+    .training-sidebar {
+        flex: 1;
+        background: #1e1e2d;
+        border-radius: 12px;
+        padding: 20px;
+        border: 1px solid #323248;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    /* Chat Area */
+    .chat-header {
+        background: #2b2b40;
+        padding: 15px 20px;
+        border-bottom: 1px solid #323248;
+        font-weight: bold;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .chat-messages {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    .msg-bubble {
+        max-width: 80%;
+        padding: 12px 18px;
+        border-radius: 12px;
+        font-size: 14px;
+        line-height: 1.5;
+        position: relative;
+    }
+    .msg-user {
+        background: #3699ff;
+        color: white;
+        align-self: flex-start;
+        border-top-right-radius: 2px;
+    }
+    .msg-ai {
+        background: #2b2b40;
+        color: #e4e6ef;
+        align-self: flex-end;
+        border-top-left-radius: 2px;
+    }
+    
+    /* Input Area */
+    .chat-input-area {
+        padding: 15px;
+        background: #2b2b40;
+        border-top: 1px solid #323248;
+        display: flex;
+        gap: 10px;
+    }
+    .chat-input-area textarea {
+        flex: 1;
+        background: #1e1e2d;
+        border: 1px solid #323248;
+        color: white;
+        padding: 12px 15px;
+        border-radius: 8px;
+        outline: none;
+        resize: none;
+        min-height: 48px;
+        max-height: 150px;
+        overflow-y: auto;
+        line-height: 1.5;
+    }
+    .chat-input-area textarea:focus {
+        border-color: #3699ff;
+    }
+    .btn-send {
+        background: #3699ff;
+        color: white;
+        border: none;
+        padding: 0 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: 0.3s;
+        font-weight: bold;
+    }
+    .btn-send:hover {
+        background: #187de4;
+    }
+    
+    /* Stats Panel */
+    .stats-card {
+        background: #2b2b40;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+    }
+    .stats-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #1bc5bd;
+        margin-top: 10px;
+    }
+</style>
+
+<div class="container-fluid main-content px-4 px-lg-5 pb-5">
+    <div class="glass-card p-4 p-md-5 animate-fade-in" style="text-align: right;">
+        <h2 class="mb-4 fw-bold text-white">🤖 تدريب الذكاء الاصطناعي</h2>
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <p class="text-white-50 small mb-1"><strong>شات التدريب:</strong> أعطِ البوت أوامر ليتعلمها (مثال: لو حد سألك على كذا قوله كذا).</p>
+            </div>
+            <div class="col-md-6">
+                <p class="text-white-50 small mb-1"><strong>شات الاختبار:</strong> اختبر البوت كأنك عميل لتتأكد من أنه حفظ التعليمات بشكل صحيح.</p>
+            </div>
+        </div>
+        
+        <div class="training-wrapper">
+            <!-- Teach Chat Panel (Right) -->
+            <div class="training-chat-container border border-info border-opacity-50">
+                <div class="chat-header" style="background: rgba(13, 202, 240, 0.1);">
+                    <span class="text-info fw-bold"><i class="bi bi-robot"></i> شات التعليمات</span>
+                    <button class="btn btn-sm btn-outline-danger" id="btnClearTeach"><i class="bi bi-trash"></i> مسح</button>
+                </div>
+                
+                <div class="chat-messages" id="teachContainer">
+                    <% if (!teachMessages || teachMessages.length === 0) { %>
+                        <div class="msg-bubble msg-ai bg-dark border border-info border-opacity-50 text-white">
+                            أهلاً بك يا مدير! أنا هنا مخصص لتلقي أوامرك وحفظها في قاعدة البيانات.
+                            <br><br>💡 <strong>أسهل طريقة للحفظ:</strong> اكتب لي مثلاً: 
+                            <br><i class="text-info">"لما حد يسألك عن سعر التوصيل، قوله 50 جنيه"</i>
+                            <br>أو <i class="text-info">"احفظ دي: مواعيد العمل من 10 الصبح لـ 10 بالليل"</i>
+                            <br><br>سيتم تخزين التعليمة مباشرة وسأؤكد لك حفظها لتقوم بتجربتها في الشات الآخر.
+                        </div>
+                    <% } %>
+                
+                    <% if (typeof teachMessages !== 'undefined' && teachMessages && teachMessages.length > 0) { %>
+                        <% teachMessages.forEach(msg => { %>
+                            <div class="msg-bubble <%= msg.role === 'user' ? 'msg-user bg-info text-dark' : 'msg-ai bg-dark border border-info border-opacity-50 text-white' %>">
+                                <%- msg.content.replace(/\n/g, '<br>') %>
+                            </div>
+                        <% }) %>
+                    <% } %>
+                </div>
+                
+                <div class="chat-input-area border-0 p-3 pt-0" style="background: transparent;">
+                    <div id="teachTypingIndicator" class="text-muted small ms-2 mb-2" style="display: none; align-self: flex-start; width: 100%;">يتم استخراج البيانات...</div>
+                </div>
+                <div class="chat-input-area border-top border-info border-opacity-25" style="background: rgba(13, 202, 240, 0.05);">
+                    <textarea id="teachInput" class="bg-dark text-white border-info border-opacity-50" placeholder="أدخل تعليمة جديدة للبوت..." rows="1"></textarea>
+                    <button class="btn-send btn-info text-dark" id="btnTeachSend">حفظ</button>
+                </div>
+            </div>
+
+            <!-- Test Chat Panel (Left) -->
+            <div class="training-chat-container">
+                <div class="chat-header">
+                    <span><i class="bi bi-person"></i> محاكاة العميل (شات الاختبار)</span>
+                    <button class="btn btn-sm btn-outline-danger" id="btnClearChat"><i class="bi bi-trash"></i> مسح</button>
+                </div>
+                
+                <div class="chat-messages" id="chatContainer">
+                    <% if (!messages || messages.length === 0) { %>
+                        <div class="msg-bubble msg-ai">
+                            أهلاً بيك 👋 أنا البوت وجاهز أرد عليك بناءً على التعليمات اللي أنت ضفتها! جرب تسألني أي سؤال.
+                        </div>
+                    <% } %>
+                
+                    <% if (messages && messages.length > 0) { %>
+                        <% messages.forEach(msg => { %>
+                            <div class="msg-bubble <%= msg.role === 'user' ? 'msg-user' : 'msg-ai' %>">
+                                <%- msg.content.replace(/\n/g, '<br>') %>
+                            </div>
+                        <% }) %>
+                    <% } %>
+                </div>
+                
+                <div class="chat-input-area border-0 p-3 pt-0" style="background: transparent;">
+                    <div id="typingIndicator" class="text-muted small ms-2 mb-2" style="display: none; align-self: flex-start; width: 100%;">البوت يكتب الآن...</div>
+                </div>
+                <div class="chat-input-area">
+                    <textarea id="chatInput" placeholder="اكتب رسالة لتجربة البوت..." rows="1"></textarea>
+                    <button class="btn-send" id="btnSend">إرسال</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const chatContainer = document.getElementById('chatContainer');
+    const chatInput = document.getElementById('chatInput');
+    const btnSend = document.getElementById('btnSend');
+    const btnClearChat = document.getElementById('btnClearChat');
+    const typingIndicator = document.getElementById('typingIndicator');
+    
+    const teachContainer = document.getElementById('teachContainer');
+    const teachInput = document.getElementById('teachInput');
+    const btnTeachSend = document.getElementById('btnTeachSend');
+    const btnClearTeach = document.getElementById('btnClearTeach');
+    const teachTypingIndicator = document.getElementById('teachTypingIndicator');
+    
+    // Auto scroll
+    const scrollToBottom = (container) => {
+        container.scrollTop = container.scrollHeight;
+    };
+    scrollToBottom(chatContainer);
+    scrollToBottom(teachContainer);
+
+    // Auto resize textarea
+    const autoResize = (el) => {
+        el.style.height = 'auto';
+        el.style.height = (el.scrollHeight) + 'px';
+        if (el.value === '') {
+            el.style.height = '48px'; // resetting to base height
+        }
+    };
+
+    chatInput.addEventListener('input', () => autoResize(chatInput));
+    teachInput.addEventListener('input', () => autoResize(teachInput));
+
+    // Render message
+    const addMessage = (container, text, isUser, type) => {
+        const div = document.createElement('div');
+        if (type === 'teach') {
+            div.className = `msg-bubble ${isUser ? 'msg-user bg-info text-dark' : 'msg-ai bg-dark border border-info border-opacity-50 text-white'}`;
+        } else {
+            div.className = `msg-bubble ${isUser ? 'msg-user' : 'msg-ai'}`;
+        }
+        div.innerHTML = text.replace(/\n/g, '<br>');
+        container.appendChild(div);
+        scrollToBottom(container);
+    };
+
+    // --- TEST CHAT LOGIC ---
+    const sendMessage = async () => {
+        const text = chatInput.value.trim();
+        if (!text) return;
+
+        chatInput.value = '';
+        autoResize(chatInput);
+        addMessage(chatContainer, text, true, 'test');
+        typingIndicator.style.display = 'block';
+        btnSend.disabled = true;
+        chatInput.disabled = true;
+
+        try {
+            const response = await fetch('/dashboard/training/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text })
+            });
+
+            const data = await response.json();
+            
+            if (data.success && data.aiReply) {
+                addMessage(chatContainer, data.aiReply.content, false, 'test');
+            } else {
+                addMessage(chatContainer, "حدث خطأ أثناء الاتصال بالذكاء الاصطناعي.", false, 'test');
+            }
+        } catch (err) {
+            console.error(err);
+            addMessage(chatContainer, "فشل الاتصال بالخادم. تأكد من اتصالك بالإنترنت.", false, 'test');
+        } finally {
+            typingIndicator.style.display = 'none';
+            btnSend.disabled = false;
+            chatInput.disabled = false;
+            chatInput.focus();
+        }
+    };
+
+    // --- TEACH CHAT LOGIC ---
+    const sendTeachMessage = async () => {
+        const text = teachInput.value.trim();
+        if (!text) return;
+
+        teachInput.value = '';
+        autoResize(teachInput);
+        addMessage(teachContainer, text, true, 'teach');
+        teachTypingIndicator.style.display = 'block';
+        btnTeachSend.disabled = true;
+        teachInput.disabled = true;
+
+        try {
+            const response = await fetch('/dashboard/training/teach', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text })
+            });
+
+            const data = await response.json();
+            
+            if (data.success && data.aiReply) {
+                addMessage(teachContainer, data.aiReply.content, false, 'teach');
+            } else {
+                addMessage(teachContainer, "حدث خطأ أثناء معالجة الأمر.", false, 'teach');
+            }
+        } catch (err) {
+            console.error(err);
+            addMessage(teachContainer, "فشل الاتصال بالخادم. تأكد من الفاتورة والإنترنت.", false, 'teach');
+        } finally {
+            teachTypingIndicator.style.display = 'none';
+            btnTeachSend.disabled = false;
+            teachInput.disabled = false;
+            teachInput.focus();
+        }
+    };
+
+    // Events Test
+    btnSend.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    btnClearChat.addEventListener('click', async () => {
+        if (!confirm('سيتم مسح محادثة الاختبار، متأكد؟')) return;
+        try {
+            const res = await fetch('/dashboard/training/clear', { method: 'POST' });
+            if (res.ok) window.location.reload();
+        } catch (err) { alert('خطأ في مسح شات الاختبار'); }
+    });
+
+    // Events Teach
+    btnTeachSend.addEventListener('click', sendTeachMessage);
+    teachInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendTeachMessage();
+        }
+    });
+
+    btnClearTeach.addEventListener('click', async () => {
+        if (!confirm('سيتم مسح محادثة التدريب، متأكد؟')) return;
+        try {
+            const res = await fetch('/dashboard/training/clear-teach', { method: 'POST' });
+            if (res.ok) window.location.reload();
+        } catch (err) { alert('خطأ في مسح شات التدريب'); }
+    });
+});
+</script>
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
