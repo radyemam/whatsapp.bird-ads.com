@@ -34,7 +34,7 @@
     <%- include('partials/navbar') %>
     <%- include('partials/sidebar') %>
 
-    <div class="container-fluid main-content px-4 px-lg-5">
+    <div class="main-content">
 
         <!-- Header -->
         <div class="glass-card p-4 mb-4 animate-fade-in">
@@ -53,55 +53,47 @@
 
         <div class="row g-4">
 
-            <!-- Left Column: Setup + Pages -->
-            <div class="col-lg-5">
+            <!-- Left Column: Connect + Pages -->
+            <div class="col-12 col-lg-5">
 
-                <!-- Webhook Setup Card -->
+                <!-- Connect via Facebook Card -->
                 <div class="glass-card p-4 mb-4">
-                    <h6 class="fw-bold text-white mb-3">⚙️ إعداد الـ Webhook في Meta</h6>
-                    <div class="setup-step p-3 mb-3">
-                        <p class="text-white-50 small mb-2">1️⃣ افتح التطبيق في <strong class="text-white">Meta Developer</strong> تبع (bird ads)</p>
-                        <p class="text-white-50 small mb-2">2️⃣ من القائمة اليسار اختر <strong class="text-white">Messenger > Settings</strong></p>
-                        <p class="text-white-50 small mb-2">3️⃣ في قسم <strong class="text-white">Webhooks</strong> اضغط Add Callback URL وحط الرابط ده:</p>
+                    <h6 class="fw-bold text-white mb-1">🔗 ربط صفحات الفيسبوك</h6>
+                    <p class="text-white-50 small mb-3">اضغط الزرار وسجّل بحساب الفيسبوك بتاعك عشان نجيب صفحاتك تلقائياً</p>
+                    <a href="/auth/facebook/messenger" class="btn w-100 rounded-pill fw-bold d-flex align-items-center justify-content-center gap-2" 
+                       style="background: linear-gradient(135deg, #0866ff, #1877f2); color: white; padding: 12px; font-size: 1rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="white" viewBox="0 0 24 24">
+                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                        </svg>
+                        سجّل دخول بالفيسبوك
+                    </a>
 
-                        <div class="d-flex align-items-center gap-2 bg-dark rounded-3 p-2 mt-2 mb-3">
-                            <code class="text-info small flex-grow-1 text-break" dir="ltr" id="webhook-url-display"><%= webhookUrl %></code>
-                            <button class="btn btn-sm btn-outline-info copy-btn" onclick="copyText('<%= webhookUrl %>', this)">نسخ</button>
-                        </div>
-
-                        <p class="text-white-50 small mb-2">4️⃣ في <strong class="text-white">Verify Token</strong> حط:</p>
-                        <div class="d-flex align-items-center gap-2 bg-dark rounded-3 p-2 mb-3">
-                            <code class="text-warning small flex-grow-1" dir="ltr" id="verify-token-display"><%= verifyToken %></code>
-                            <button class="btn btn-sm btn-outline-warning copy-btn" onclick="copyText('<%= verifyToken %>', this)">نسخ</button>
-                        </div>
-
-                        <p class="text-white-50 small mb-1">5️⃣ فعّل صلاحيات <strong class="text-white">messages</strong> و <strong class="text-white">messaging_postbacks</strong></p>
-                    </div>
-                </div>
-
-                <!-- Connect Page Card -->
-                <div class="glass-card p-4 mb-4">
-                    <h6 class="fw-bold text-white mb-3">➕ ربط صفحة جديدة</h6>
-                    <form id="connect-form">
-                        <div class="mb-3">
-                            <label class="form-label text-white-50 small">اسم الصفحة</label>
-                            <input type="text" id="page-name" class="form-control bg-dark text-white border-secondary" placeholder="مثال: متجر الملابس">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label text-white-50 small">Page ID (معرف الصفحة)</label>
-                            <input type="text" id="page-id" class="form-control bg-dark text-white border-secondary" placeholder="مثال: 107xxxxxxxx" dir="ltr">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label text-white-50 small">Page Access Token</label>
-                            <textarea id="access-token" class="form-control bg-dark text-white border-secondary" rows="2" placeholder="EAAxxxxxxxx..." dir="ltr"></textarea>
-                            <div class="form-text text-white-50 mt-1">
-                                📌 لجيب الـ Access Token: Meta Developer → Messenger → Settings → Generate Token
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100 rounded-pill">
-                            🔗 ربط الصفحة
+                    <!-- خيار بديل: إدخال يدوي -->
+                    <div class="mt-3">
+                        <button class="btn btn-link text-white-50 small p-0 text-decoration-none" 
+                                type="button" data-bs-toggle="collapse" data-bs-target="#manualForm">
+                            ➕ أو أدخل بيانات الصفحة يدوياً
                         </button>
-                    </form>
+                        <div class="collapse mt-3" id="manualForm">
+                            <form id="connect-form">
+                                <div class="mb-3">
+                                    <label class="form-label text-white-50 small">اسم الصفحة</label>
+                                    <input type="text" id="page-name" class="form-control bg-dark text-white border-secondary" placeholder="مثال: متجر الملابس">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-white-50 small">Page ID (معرف الصفحة)</label>
+                                    <input type="text" id="page-id" class="form-control bg-dark text-white border-secondary" placeholder="مثال: 107xxxxxxxx" dir="ltr">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-white-50 small">Page Access Token</label>
+                                    <textarea id="access-token" class="form-control bg-dark text-white border-secondary" rows="2" placeholder="EAAxxxxxxxx..." dir="ltr"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-outline-primary w-100 rounded-pill">
+                                    🔗 ربط الصفحة يدوياً
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Pages List -->
@@ -117,7 +109,7 @@
             </div>
 
             <!-- Right Column: Conversations -->
-            <div class="col-lg-7">
+            <div class="col-12 col-lg-7">
                 <div class="glass-card p-4 h-100">
                     <div class="d-flex align-items-center justify-content-between mb-4">
                         <h6 class="fw-bold text-white mb-0" id="convos-title">💬 اختر صفحة لعرض المحادثات</h6>
@@ -161,8 +153,32 @@
             toast.className = `alert alert-${type} shadow mb-2`;
             toast.innerText = msg;
             document.getElementById('toast-container').appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
+            setTimeout(() => toast.remove(), 4000);
         }
+
+        // ======= معالجة نتيجة Facebook OAuth =======
+        (function checkOAuthResult() {
+            const params = new URLSearchParams(window.location.search);
+            const success = params.get('success');
+            const error = params.get('error');
+
+            if (success) {
+                showToast(`✅ تم ربط ${success} صفحة بنجاح من الفيسبوك!`, 'success');
+            } else if (error) {
+                const msgs = {
+                    'facebook_denied': '❌ تم رفض الصلاحيات، يرجى المحاولة مرة أخرى',
+                    'token_failed': '❌ فشل في الحصول على الـ Token من فيسبوك',
+                    'no_pages': '⚠️ لا توجد صفحات مرتبطة بهذا الحساب',
+                    'server_error': '❌ حدث خطأ في الخادم، يرجى المحاولة لاحقاً'
+                };
+                showToast(msgs[error] || '❌ حدث خطأ غير متوقع', 'danger');
+            }
+
+            // امسح الـ params من الـ URL عشان ما يتكررش لو refresh
+            if (success || error) {
+                history.replaceState({}, '', '/dashboard/messenger');
+            }
+        })();
 
         function copyText(text, btn) {
             navigator.clipboard.writeText(text).then(() => {

@@ -6,7 +6,9 @@ import {
     connectPage,
     disconnectPage,
     getConversations,
-    getSummary
+    getSummary,
+    startFacebookAuth,
+    handleFacebookCallback
 } from '../controllers/messengerController.js';
 
 const router = express.Router();
@@ -23,10 +25,20 @@ router.get('/dashboard/messenger', (req, res) => {
     if (!req.isAuthenticated()) return res.redirect('/login');
     res.render('messenger', {
         user: req.user,
-        page: 'messenger',
-        webhookUrl: `${process.env.TUNNEL_URL || 'https://dull-rules-boil.loca.lt'}/webhook/messenger`,
-        verifyToken: 'lina_messenger_verify_2024'
+        page: 'messenger'
     });
+});
+
+// ====== Facebook OAuth Routes ======
+// بدء عملية الـ Login بفيسبوك
+router.get('/auth/facebook/messenger', (req, res) => {
+    if (!req.isAuthenticated()) return res.redirect('/login');
+    return startFacebookAuth(req, res);
+});
+
+// Callback بعد موافقة اليوزر على فيسبوك
+router.get('/auth/facebook/messenger/callback', (req, res) => {
+    return handleFacebookCallback(req, res);
 });
 
 // ====== API Routes للواجهة ======

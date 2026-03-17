@@ -385,3 +385,115 @@ export async function getSummary(req, res) {
         res.status(500).json({ success: false, message: err.message });
     }
 }
+
+// ======================================================
+// Facebook OAuth - ابدأ عملية تسجيل الدخول بفيسبوك
+// ======================================================
+export function startFacebookAuth(req, res) {
+    const appId = process.env.FB_APP_ID;
+    const redirectUri = encodeURIComponent(process.env.FB_REDIRECT_URI);
+    const scopes = [
+        'pages_show_list',
+        'pages_read_engagement',
+        'pages_manage_metadata',
+        'pages_messaging'
+    ].join(',');
+
+    // نحفظ الـ userId في الـ session عشان نستخدمه بعد الـ callback
+    req.session.fbAuthUserId = req.user.id;
+
+    const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code`;
+    res.redirect(authUrl);
+}
+
+// ======================================================
+// Facebook OAuth - استقبال الـ callback بعد موافقة اليوزر
+// ======================================================
+export async function handleFacebookCallback(req, res) {
+    const { code, error } = req.query;
+
+    // لو اليوزر رفض أو حصل خطأ
+    if (error || !code) {
+        console.error('[Facebook OAuth] Error or denied:', error);
+        return res.redirect('/dashboard/messenger?error=facebook_denied');
+    }
+
+    try {
+        const appId = process.env.FB_APP_ID;
+        const appSecret = process.env.FB_APP_SECRET;
+        const redirectUri = encodeURIComponent(process.env.FB_REDIRECT_URI);
+        const userId = req.session.fbAuthUserId || req.user?.id;
+
+        if (!userId) {
+            return res.redirect('/login');
+        }
+
+        // الخطوة 1: استبدل الـ code بـ User Access Token
+        const tokenRes = await fetch(
+            `https://graph.facebook.com/v18.0/oauth/access_token?client_id=${appId}&redirect_uri=${redirectUri}&client_secret=${appSecret}&code=${code}`
+        );
+        const tokenData = await tokenRes.json();
+
+        if (!tokenData.access_token) {
+            console.error('[Facebook OAuth] Failed to get token:', tokenData);
+            return res.redirect('/dashboard/messenger?error=token_failed');
+        }
+
+        const userToken = tokenData.access_token;
+        console.log('[Facebook OAuth] ✅ Got user access token');
+
+        // الخطوة 2: جيب كل الصفحات اللي عند اليوزر
+        const pagesRes = await fetch(
+            `https://graph.facebook.com/v18.0/me/accounts?access_token=${userToken}&fields=id,name,access_token`
+        );
+        const pagesData = await pagesRes.json();
+
+        if (!pagesData.data || pagesData.data.length === 0) {
+            console.log('[Facebook OAuth] No pages found for user');
+            return res.redirect('/dashboard/messenger?error=no_pages');
+        }
+
+        console.log(`[Facebook OAuth] Found ${pagesData.data.length} pages`);
+
+        // الخطوة 3: احفظ كل صفحة في DB
+        let savedCount = 0;
+        for (const page of pagesData.data) {
+            try {
+                const [record, created] = await MessengerPage.findOrCreate({
+                    where: { pageId: page.id },
+                    defaults: {
+                        UserId: userId,
+                        pageId: page.id,
+                        pageName: page.name,
+                        accessToken: page.access_token,
+                        isActive: true
+                    }
+                });
+
+                if (!created) {
+                    // حدّث الـ token لو الصفحة موجودة
+                    await record.update({
+                        pageName: page.name,
+                        accessToken: page.access_token,
+                        UserId: userId,
+                        isActive: true
+                    });
+                }
+                savedCount++;
+                console.log(`[Facebook OAuth] ✅ Saved page: ${page.name} (${page.id})`);
+            } catch (e) {
+                console.error(`[Facebook OAuth] Failed to save page ${page.id}:`, e);
+            }
+        }
+
+        // امسح الـ session variable
+        delete req.session.fbAuthUserId;
+
+        // ارجع للداشبورد مع رسالة نجاح
+        res.redirect(`/dashboard/messenger?success=${savedCount}`);
+
+    } catch (err) {
+        console.error('[Facebook OAuth] Callback Error:', err);
+        res.redirect('/dashboard/messenger?error=server_error');
+    }
+}
