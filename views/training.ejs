@@ -133,6 +133,66 @@
         color: #1bc5bd;
         margin-top: 10px;
     }
+
+    /* ===== Mobile Responsive ===== */
+    @media (max-width: 768px) {
+        .training-wrapper {
+            flex-direction: column;
+            height: auto;
+            min-height: unset;
+            gap: 16px;
+        }
+
+        .training-chat-container {
+            flex: none;
+            height: 55vh;
+            min-height: 320px;
+        }
+
+        .training-sidebar {
+            flex: none;
+        }
+
+        .msg-bubble {
+            max-width: 90%;
+            font-size: 13px;
+        }
+
+        .chat-header {
+            padding: 10px 14px;
+            font-size: 14px;
+        }
+
+        .chat-messages {
+            padding: 14px;
+            gap: 10px;
+        }
+
+        .chat-input-area {
+            padding: 10px;
+            gap: 8px;
+        }
+
+        .chat-input-area textarea {
+            padding: 10px 12px;
+            font-size: 14px;
+        }
+
+        .btn-send {
+            padding: 0 14px;
+            font-size: 14px;
+        }
+
+        /* تصغير الـ header على الموبيل */
+        h2.fw-bold {
+            font-size: 1.3rem;
+        }
+
+        /* الـ description row فوق بعض */
+        .row.mb-4 .col-md-6 {
+            margin-bottom: 8px;
+        }
+    }
 </style>
 
 <div class="container-fluid main-content px-4 px-lg-5 pb-5">

@@ -46,22 +46,135 @@ export async function handleWebhook(req, res) {
         const pageId = entry.id;
         console.log(`📌 [Messenger] Entry from page: ${pageId}`);
 
-        for (const event of entry.messaging) {
-            // تجاهل الـ echo (الرسائل اللي بعتها البوت نفسه)
-            if (event.message?.is_echo) continue;
-            // تجاهل الـ read و delivery events
-            if (!event.message?.text) continue;
-
-            const senderId = event.sender.id;
-            const messageText = event.message.text;
-            console.log(`💬 [Messenger] Message from ${senderId}: "${messageText}"`);
-
-            try {
-                await processMessengerMessage(pageId, senderId, messageText);
-            } catch (err) {
-                console.error(`[Messenger] Error processing message from ${senderId}:`, err);
+        // ======================================================
+        // معالجة أحداث الكومنتات (feed changes)
+        // ======================================================
+        if (entry.changes && entry.changes.length > 0) {
+            for (const change of entry.changes) {
+                if (change.field === 'feed' && change.value?.item === 'comment' && change.value?.verb === 'add') {
+                    const commentData = change.value;
+                    console.log(`💬 [Messenger] New comment on page ${pageId}:`, JSON.stringify(commentData).substring(0, 200));
+                    try {
+                        await handleCommentEvent(pageId, commentData);
+                    } catch (err) {
+                        console.error(`[Messenger] Error handling comment:`, err);
+                    }
+                }
             }
         }
+
+        // ======================================================
+        // معالجة رسائل الماسنجر (messaging events)
+        // ======================================================
+        if (entry.messaging && entry.messaging.length > 0) {
+            for (const event of entry.messaging) {
+                // تجاهل الـ echo (الرسائل اللي بعتها البوت نفسه)
+                if (event.message?.is_echo) continue;
+                // تجاهل الـ read و delivery events
+                if (!event.message?.text) continue;
+
+                const senderId = event.sender.id;
+                const messageText = event.message.text;
+                console.log(`💬 [Messenger] Message from ${senderId}: "${messageText}"`);
+
+                try {
+                    await processMessengerMessage(pageId, senderId, messageText);
+                } catch (err) {
+                    console.error(`[Messenger] Error processing message from ${senderId}:`, err);
+                }
+            }
+        }
+    }
+}
+
+// ======================================================
+// معالجة حدث الكومنت: لايك + رد ترحيبي + فتح ماسنجر بالـ AI
+// ======================================================
+async function handleCommentEvent(pageId, commentData) {
+    // جيب بيانات الصفحة من قاعدة البيانات
+    const page = await MessengerPage.findOne({ where: { pageId, isActive: true } });
+    if (!page) {
+        console.warn(`[Messenger Comment] No active page found for pageId: ${pageId}`);
+        return;
+    }
+
+    const accessToken = page.accessToken;
+    const commentId = commentData.comment_id;
+    const commenterId = commentData.from?.id;
+    const commenterName = commentData.from?.name || 'العميل';
+    const commentText = commentData.message || '';
+
+    if (!commentId || !commenterId) {
+        console.warn('[Messenger Comment] Missing commentId or commenterId, skipping.');
+        return;
+    }
+
+    // تجاهل لو الكومنت من الصفحة نفسها (Bot echo)
+    if (commenterId === pageId) {
+        console.log('[Messenger Comment] Comment from page itself, ignoring.');
+        return;
+    }
+
+    console.log(`💬 [Comment] From: ${commenterName} (${commenterId}) | Text: "${commentText}"`);
+
+    // 1. عمل لايك على الكومنت
+    await likeComment(commentId, accessToken);
+
+    // 2. الرد على الكومنت بالرسالة الترحيبية
+    // استخراج الاسم الأول بس عشان يبقى أنيق
+    const firstName = commenterName.split(' ')[0];
+    const publicReply = `أهلاً وسهلاً بحضرتك يا أ/ ${commenterName} 😊\nتم إرسال التفاصيل لك في الرسائل الخاصة ✅`;
+    await replyToComment(commentId, publicReply, accessToken);
+
+    // 3. فتح محادثة ماسنجر مع العميل والرد بالـ AI مباشرة
+    // لو في نص في الكومنت، ابعته على الـ AI عشان يرد
+    if (commentText.trim().length > 0) {
+        try {
+            await processMessengerMessage(pageId, commenterId, commentText);
+        } catch (err) {
+            console.error('[Messenger Comment] Error processing AI reply:', err);
+        }
+    }
+}
+
+// ======================================================
+// عمل لايك على كومنت
+// ======================================================
+async function likeComment(commentId, accessToken) {
+    try {
+        const response = await fetch(`https://graph.facebook.com/v18.0/${commentId}/likes?access_token=${accessToken}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await response.json();
+        if (data.success || data === true) {
+            console.log(`✅ [Comment] Liked comment: ${commentId}`);
+        } else {
+            console.warn(`⚠️ [Comment] Failed to like comment ${commentId}:`, data);
+        }
+    } catch (err) {
+        console.error(`[Comment] Error liking comment ${commentId}:`, err);
+    }
+}
+
+// ======================================================
+// الرد على كومنت عام
+// ======================================================
+async function replyToComment(commentId, message, accessToken) {
+    try {
+        const response = await fetch(`https://graph.facebook.com/v18.0/${commentId}/comments?access_token=${accessToken}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: message.substring(0, 2000) })
+        });
+        const data = await response.json();
+        if (data.id) {
+            console.log(`✅ [Comment] Replied to comment: ${commentId}`);
+        } else {
+            console.warn(`⚠️ [Comment] Failed to reply to comment ${commentId}:`, data);
+        }
+    } catch (err) {
+        console.error(`[Comment] Error replying to comment ${commentId}:`, err);
     }
 }
 
@@ -79,54 +192,65 @@ async function processMessengerMessage(pageId, senderId, messageText) {
     const userId = page.UserId;
     const accessToken = page.accessToken;
 
-    // 2. اعمل أو حدّث بيانات الـ conversation
-    let [conversation, created] = await MessengerConversation.findOrCreate({
-        where: { pageId, senderId },
-        defaults: { UserId: userId, pageId, senderId, messageCount: 0 }
-    });
+    // إرسال علامة "يكتب الآن..." فوراً
+    sendMessengerAction(senderId, 'typing_on', accessToken);
+    // تكرار إرسال العلامة كل 8 ثواني عشان ماتختفيش لو الرد اتأخر
+    const typingInterval = setInterval(() => {
+        sendMessengerAction(senderId, 'typing_on', accessToken);
+    }, 8000);
 
-    // 3. جيب اسم المرسل من ميتا (لو مجبناهوش قبل كده)
-    if (created || conversation.senderName === 'عميل') {
-        try {
-            const profileRes = await fetch(`https://graph.facebook.com/v18.0/${senderId}?fields=name&access_token=${accessToken}`);
-            const profileData = await profileRes.json();
-            if (profileData.name) {
-                await conversation.update({ senderName: profileData.name });
+    try {
+        // 2. اعمل أو حدّث بيانات الـ conversation
+        let [conversation, created] = await MessengerConversation.findOrCreate({
+            where: { pageId, senderId },
+            defaults: { UserId: userId, pageId, senderId, messageCount: 0 }
+        });
+
+        // 3. جيب اسم المرسل من ميتا (لو مجبناهوش قبل كده)
+        if (created || conversation.senderName === 'عميل') {
+            try {
+                const profileRes = await fetch(`https://graph.facebook.com/v18.0/${senderId}?fields=name&access_token=${accessToken}`);
+                const profileData = await profileRes.json();
+                if (profileData.name) {
+                    await conversation.update({ senderName: profileData.name });
+                }
+            } catch (e) {
+                // لو مش قادر يجيب الاسم، مش مشكلة
             }
-        } catch (e) {
-            // لو مش قادر يجيب الاسم، مش مشكلة
         }
-    }
 
-    // 4. حدّث عدد الرسائل وتاريخ آخر رسالة
-    await conversation.update({
-        messageCount: conversation.messageCount + 1,
-        lastMessageAt: new Date()
-    });
+        // 4. حدّث عدد الرسائل وتاريخ آخر رسالة
+        await conversation.update({
+            messageCount: conversation.messageCount + 1,
+            lastMessageAt: new Date()
+        });
 
-    // 5. احفظ الرسالة في جدول الرسائل
-    const conversationId = `msng_${pageId}_${senderId}`;
-    await Message.create({
-        UserId: userId,
-        remoteJid: conversationId,
-        role: 'user',
-        content: messageText
-    });
-
-    // 6. استدعي الـ AI للرد
-    const aiReply = await callVertexAIForMessenger(userId, senderId, messageText, conversationId);
-
-    if (aiReply) {
-        // 7. احفظ رد الـ AI
+        // 5. احفظ الرسالة في جدول الرسائل
+        const conversationId = `msng_${pageId}_${senderId}`;
         await Message.create({
             UserId: userId,
             remoteJid: conversationId,
-            role: 'model', // Fixed from 'assistant' to 'model'
-            content: aiReply
+            role: 'user',
+            content: messageText
         });
 
-        // 8. ابعت الرد للعميل على الماسنجر
-        await sendMessengerReply(senderId, aiReply, accessToken);
+        // 6. استدعي الـ AI للرد
+        const aiReply = await callVertexAIForMessenger(userId, senderId, messageText, conversationId);
+
+        if (aiReply) {
+            // 7. احفظ رد الـ AI
+            await Message.create({
+                UserId: userId,
+                remoteJid: conversationId,
+                role: 'model', // Fixed from 'assistant' to 'model'
+                content: aiReply
+            });
+
+            // 8. ابعت الرد للعميل على الماسنجر
+            await sendMessengerReply(senderId, aiReply, accessToken);
+        }
+    } finally {
+        clearInterval(typingInterval);
     }
 }
 
@@ -248,6 +372,24 @@ async function sendMessengerReply(recipientId, text, accessToken) {
 }
 
 // ======================================================
+// إرسال حالة أكشن للماسنجر (مثل typing_on)
+// ======================================================
+async function sendMessengerAction(recipientId, action, accessToken) {
+    try {
+        await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${accessToken}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                recipient: { id: recipientId },
+                sender_action: action
+            })
+        });
+    } catch (err) {
+        console.error(`[Messenger] Failed to send action ${action}:`, err);
+    }
+}
+
+// ======================================================
 // عمل ملخص للمحادثة بالـ AI
 // ======================================================
 export async function generateConversationSummary(userId, conversationId) {
@@ -343,6 +485,29 @@ export async function connectPage(req, res) {
             await page.update({ pageName, accessToken, isActive: true });
         }
 
+        // 👉 تفعيل الـ Webhook للصفحة عشان يتبعت لنا الرسائل والكومنتات
+        try {
+            const subscribeRes = await fetch(
+                `https://graph.facebook.com/v18.0/${pageId}/subscribed_apps`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        subscribed_fields: ['messages', 'messaging_postbacks', 'feed'],
+                        access_token: accessToken
+                    })
+                }
+            );
+            const subscribeData = await subscribeRes.json();
+            if (subscribeData.success) {
+                console.log(`[Messenger] ✅ Subscribed to webhooks (messages + feed) for page: ${pageName}`);
+            } else {
+                console.error(`[Messenger] ⚠️ Failed to subscribe webhook for page ${pageId}:`, subscribeData.error);
+            }
+        } catch (subErr) {
+            console.error(`[Messenger] ⚠️ Error subscribing webhook for page ${pageId}:`, subErr);
+        }
+
         res.json({ success: true, message: `تم ربط صفحة "${pageName}" بنجاح!`, page });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
@@ -396,7 +561,8 @@ export function startFacebookAuth(req, res) {
         'pages_show_list',
         'pages_read_engagement',
         'pages_manage_metadata',
-        'pages_messaging'
+        'pages_messaging',
+        'pages_manage_engagement'
     ].join(',');
 
     // نحفظ الـ userId في الـ session عشان نستخدمه بعد الـ callback
@@ -479,6 +645,30 @@ export async function handleFacebookCallback(req, res) {
                         isActive: true
                     });
                 }
+
+                // 👉 تفعيل الـ Webhook للصفحة عشان يتبعت لنا الرسائل والكومنتات
+                try {
+                    const subscribeRes = await fetch(
+                        `https://graph.facebook.com/v18.0/${page.id}/subscribed_apps`,
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                subscribed_fields: ['messages', 'messaging_postbacks', 'feed'],
+                                access_token: page.access_token
+                            })
+                        }
+                    );
+                    const subscribeData = await subscribeRes.json();
+                    if (subscribeData.success) {
+                        console.log(`[Facebook OAuth] ✅ Subscribed to webhooks (messages + feed) for page: ${page.name}`);
+                    } else {
+                        console.error(`[Facebook OAuth] ⚠️ Failed to subscribe webhook for page ${page.id}:`, subscribeData.error);
+                    }
+                } catch (subErr) {
+                    console.error(`[Facebook OAuth] ⚠️ Error subscribing webhook for page ${page.id}:`, subErr);
+                }
+
                 savedCount++;
                 console.log(`[Facebook OAuth] ✅ Saved page: ${page.name} (${page.id})`);
             } catch (e) {
