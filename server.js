@@ -22,6 +22,7 @@ import sequelize from './config/database.js';
 import passportConfig from './config/passport.js';
 import User from './models/User.js';
 import Message from './models/Message.js';
+import Conversation from './models/Conversation.js';
 import Instruction from './models/Instruction.js';
 import MessengerPage from './models/MessengerPage.js';
 import MessengerConversation from './models/MessengerConversation.js';

@@ -1,9 +1,11 @@
 import express from 'express';
-import { startSession, stopSession, logoutSession, getStatus, getGroups } from '../controllers/botController.js';
+import { startSession, stopSession, logoutSession, getStatus, getGroups, sendManualMessage } from '../controllers/botController.js';
 import User from '../models/User.js';
 import Message from '../models/Message.js';
+import Conversation from '../models/Conversation.js';
 import Instruction from '../models/Instruction.js';
 import { upload, compressAndSaveImage, deleteImage } from '../config/uploadConfig.js';
+import { Op, Sequelize } from 'sequelize';
 
 const router = express.Router();
 
@@ -509,6 +511,147 @@ router.post('/instructions/delete-image', async (req, res) => {
     } catch (err) {
         console.error('Delete error:', err);
         res.status(500).json({ error: 'Failed to delete image' });
+    }
+});
+
+// ============================================================
+// 💬 LIVE CHAT - Human Handoff Routes
+// ============================================================
+router.get('/livechat', async (req, res) => {
+    try {
+        const conversations = await Conversation.findAll({
+            where: { UserId: req.user.id },
+            order: [['lastMessageAt', 'DESC']],
+            limit: 100
+        });
+        const handoffCount = conversations.filter(c => c.is_handoff).length;
+        res.render('livechat', {
+            user: req.user,
+            page: 'livechat',
+            conversations: JSON.parse(JSON.stringify(conversations)),
+            handoffCount
+        });
+    } catch (err) {
+        console.error('LiveChat error:', err);
+        res.status(500).send('Error loading live chat');
+    }
+});
+
+router.get('/livechat/:remoteJid/messages', async (req, res) => {
+    try {
+        const { remoteJid } = req.params;
+        const decodedJid = decodeURIComponent(remoteJid);
+        const messages = await Message.findAll({
+            where: { UserId: req.user.id, remoteJid: decodedJid },
+            order: [['createdAt', 'ASC']],
+            limit: 50
+        });
+        // Reset unread count
+        await Conversation.update(
+            { unreadCount: 0 },
+            { where: { UserId: req.user.id, remoteJid: decodedJid } }
+        );
+        res.json({ success: true, messages });
+    } catch (err) {
+        console.error('GetMessages error:', err);
+        res.status(500).json({ error: 'Failed to load messages' });
+    }
+});
+
+router.post('/livechat/send', async (req, res) => {
+    try {
+        const { remoteJid, text } = req.body;
+        if (!remoteJid || !text) return res.status(400).json({ error: 'remoteJid and text required' });
+        const savedMsg = await sendManualMessage(req.user.id, remoteJid, text);
+        res.json({ success: true, message: savedMsg });
+    } catch (err) {
+        console.error('SendManual error:', err);
+        res.status(500).json({ error: err.message || 'Failed to send message' });
+    }
+});
+
+router.post('/livechat/handoff', async (req, res) => {
+    try {
+        const { remoteJid, enable } = req.body;
+        if (!remoteJid) return res.status(400).json({ error: 'remoteJid required' });
+        await Conversation.update(
+            { is_handoff: enable === true || enable === 'true' },
+            { where: { UserId: req.user.id, remoteJid } }
+        );
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Handoff error:', err);
+        res.status(500).json({ error: 'Failed to update handoff' });
+    }
+});
+
+// ============================================================
+// 📊 ANALYTICS ROUTES
+// ============================================================
+router.get('/analytics', async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+        const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+        const today = new Date(); today.setHours(0,0,0,0);
+
+        // Total messages
+        const totalMessages = await Message.count({ where: { UserId: userId } });
+        const inbound = await Message.count({ where: { UserId: userId, role: 'user' } });
+        const outbound = await Message.count({ where: { UserId: userId, role: 'model' } });
+
+        // Total unique conversations
+        const totalConversations = await Conversation.count({ where: { UserId: userId } });
+        const handoffCount = await Conversation.count({ where: { UserId: userId, is_handoff: true } });
+
+        // Messages today
+        const messagesToday = await Message.count({
+            where: { UserId: userId, createdAt: { [Op.gte]: today } }
+        });
+
+        // Messages last 7 days per day (for chart)
+        const last7Days = [];
+        for (let i = 6; i >= 0; i--) {
+            const dayStart = new Date(now); dayStart.setDate(dayStart.getDate() - i); dayStart.setHours(0,0,0,0);
+            const dayEnd = new Date(dayStart); dayEnd.setHours(23,59,59,999);
+            const count = await Message.count({
+                where: { UserId: userId, createdAt: { [Op.between]: [dayStart, dayEnd] } }
+            });
+            last7Days.push({
+                label: dayStart.toLocaleDateString('ar-EG', { weekday: 'short' }),
+                count
+            });
+        }
+
+        // Top instructions by keyword hits
+        const instructions = await Instruction.findAll({
+            where: { UserId: userId, isActive: true },
+            attributes: ['id','clientName','keywords','type'],
+            limit: 10,
+            order: [['createdAt','DESC']]
+        });
+
+        // Token usage
+        const user = await User.findByPk(userId);
+        const tokensUsed = user.total_tokens || 0;
+
+        res.render('analytics', {
+            user: req.user,
+            page: 'analytics',
+            totalMessages,
+            inbound,
+            outbound,
+            totalConversations,
+            handoffCount,
+            messagesToday,
+            last7Days: JSON.stringify(last7Days),
+            instructions,
+            tokensUsed
+        });
+    } catch (err) {
+        console.error('Analytics error:', err);
+        res.status(500).send('Error loading analytics');
     }
 });
 
