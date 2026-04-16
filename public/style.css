@@ -467,9 +467,9 @@ body.modal-open {
     }
 }
 
-/* Desktop Layout - Restored from Backup */
+/* Desktop Layout */
 @media (min-width: 992px) {
-    .glass-card {
+    .glass-card.max-card {
         max-width: 1200px;
         margin: 0 auto;
     }
