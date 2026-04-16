@@ -671,32 +671,16 @@
                                 });
                             });
 
-                            // 2. إيجاد الكلمات المتعارضة
-                            const conflictKws = new Set();
-                            Object.entries(kwMap).forEach(([kw, rowList]) => {
-                                if (rowList.length > 1) {
-                                    conflictKws.add(kw);
-                                    rowList.forEach(r => r.classList.add('has-conflict'));
-                                }
+                            // Keyword mapping for future use if needed, removed conflict UI updates
+                            rows.forEach(row => {
+                                const kwStr = row.getAttribute('data-keywords') || '';
+                                if (!kwStr) return;
+                                const kwList = kwStr.split(',').map(k => k.trim()).filter(k => k.length > 2);
+                                kwList.forEach(kw => {
+                                    if (!kwMap[kw]) kwMap[kw] = [];
+                                    kwMap[kw].push(row);
+                                });
                             });
-
-                            // 3. تلوين الكلمات المتعارضة
-                            const allKwTags = document.querySelectorAll('.kw-tag[data-kw]');
-                            allKwTags.forEach(tag => {
-                                const kw = tag.getAttribute('data-kw');
-                                if (conflictKws.has(kw)) {
-                                    tag.classList.add('conflict-kw');
-                                    tag.title = '⚠️ هذه الكلمة مكررة في تعليمة أخرى';
-                                }
-                            });
-
-                            // 4. تحديث مؤشر التعارض في البار العلوي
-                            const conflictRows = document.querySelectorAll('#kwTableBody tr.has-conflict');
-                            const badge = document.getElementById('kwConflictBadge');
-                            if (badge && conflictRows.length > 0) {
-                                badge.textContent = `⚠️ يوجد ${conflictRows.length} تعليمات بها تعارض`;
-                                badge.style.display = 'inline-block';
-                            }
 
                             // 5. وظيفة البحث في الجدول
                             const searchInput = document.getElementById('kwSearch');
