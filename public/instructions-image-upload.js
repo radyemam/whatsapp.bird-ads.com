@@ -178,6 +178,60 @@ function removeEditImage(index) {
     renderEditGallery();
 }
 
+// --- Dynamic Keywords Tag Input Logic ---
+window.currentEditTags = [];
+
+function renderEditTags() {
+    const hiddenInput = document.getElementById('editKeywords');
+    const container = document.getElementById('editTagsContainer');
+    if (!container || !hiddenInput) return;
+    
+    hiddenInput.value = window.currentEditTags.join(',');
+    
+    // Remove old tags from DOM
+    container.querySelectorAll('.edit-kw-tag').forEach(e => e.remove());
+    
+    // Inject tags
+    const inputEl = document.getElementById('editTagInput');
+    window.currentEditTags.forEach((tag, index) => {
+        const tagEl = document.createElement('span');
+        tagEl.className = 'edit-kw-tag badge bg-primary d-flex align-items-center gap-1';
+        tagEl.style.fontSize = '12px';
+        tagEl.style.padding = '5px 8px';
+        tagEl.innerHTML = `${tag} <i class="bi bi-x-circle text-white-50 ms-1" style="cursor:pointer;" onclick="removeEditTag(${index})" title="حذف"></i>`;
+        container.insertBefore(tagEl, inputEl);
+    });
+}
+
+window.removeEditTag = function (index) {
+    window.currentEditTags.splice(index, 1);
+    renderEditTags();
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    const inputEl = document.getElementById('editTagInput');
+    if (inputEl) {
+        inputEl.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                const val = this.value.trim().replace(/,/g, '');
+                if (val && !window.currentEditTags.includes(val)) {
+                    window.currentEditTags.push(val);
+                    renderEditTags();
+                }
+                this.value = '';
+            }
+        });
+        
+        // Prevent form submission when pressing enter inside tag input
+        inputEl.closest('form')?.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.target.id === 'editTagInput') {
+                e.preventDefault();
+            }
+        });
+    }
+});
+
 // Initialize Edit Modal
 window.editInstruction = function (btn) {
     const id = btn.getAttribute('data-id');
@@ -185,11 +239,16 @@ window.editInstruction = function (btn) {
     const content = btn.getAttribute('data-content');
     const actionTarget = btn.getAttribute('data-action-target');
     const imageUrlRaw = btn.getAttribute('data-image-url');
+    const keywords = btn.getAttribute('data-keywords') || '';
 
     document.getElementById('editId').value = id;
     document.getElementById('editClientName').value = clientName;
     document.getElementById('editContent').value = content;
     document.getElementById('editActionTarget').value = actionTarget || '';
+    
+    // Initialize tags
+    window.currentEditTags = keywords ? keywords.split(',').map(k => k.trim()).filter(k => k) : [];
+    if(typeof renderEditTags === 'function') renderEditTags();
 
     // Update form action to include the ID
     const editForm = document.querySelector('#editModal form');

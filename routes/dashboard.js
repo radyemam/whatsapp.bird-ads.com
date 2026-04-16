@@ -177,15 +177,11 @@ router.post('/instructions/add', async (req, res) => {
 
 router.post('/instructions/edit/:id', async (req, res) => {
     try {
-        const { clientName, title, content, actionTarget, imageUrl, isActive } = req.body;
-
-        // Regenerate keywords if content changed
-        const keywords = await generateKeywords(content);
+        const { clientName, title, content, actionTarget, imageUrl, keywords } = req.body;
 
         await Instruction.update({
             clientName, title, content, actionTarget, imageUrl,
-            isActive: isActive === 'on',
-            keywords: keywords // Update keywords
+            keywords: keywords || '' // Only save the exact edited keywords
         }, { where: { id: req.params.id } });
 
         res.redirect('/dashboard/instructions');
@@ -198,15 +194,11 @@ router.post('/instructions/edit/:id', async (req, res) => {
 // Alternative route for edit (accepts ID from body instead of URL)
 router.post('/instructions/edit', async (req, res) => {
     try {
-        const { id, clientName, title, content, actionTarget, imageUrl, isActive } = req.body;
-
-        // Regenerate keywords if content changed
-        const keywords = await generateKeywords(content);
+        const { id, clientName, title, content, actionTarget, imageUrl, keywords } = req.body;
 
         await Instruction.update({
             clientName, title, content, actionTarget, imageUrl,
-            isActive: isActive === 'on',
-            keywords: keywords // Update keywords
+            keywords: keywords || '' // Only save the exact edited keywords
         }, { where: { id: id } });
 
         res.redirect('/dashboard/instructions');
@@ -236,6 +228,21 @@ router.post('/instructions/delete', async (req, res) => {
     } catch (err) { res.status(500).send("Error"); }
 });
 
+router.post('/instructions/delete-multiple', async (req, res) => {
+    try {
+        const { ids, action } = req.body;
+        if (action === 'all') {
+            await Instruction.destroy({ where: { UserId: req.user.id } });
+        } else if (ids && Array.isArray(ids)) {
+            await Instruction.destroy({ where: { id: ids, UserId: req.user.id } });
+        }
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to delete instructions" });
+    }
+});
+
 router.post('/chats/delete', async (req, res) => {
     try {
         const { remoteJid } = req.body;
@@ -256,6 +263,75 @@ router.post('/chats/delete', async (req, res) => {
 // Training / Simulator Routes (المرحلة الثالثة)
 // ============================================
 
+router.post('/training/setup-wizard', async (req, res) => {
+    try {
+        const { botName, businessType, firstServiceName, serviceDetails, serviceImageUrl, items } = req.body;
+        
+        // Handle Identity (if botName provided)
+        if (botName) {
+            const identityContent = `أنت موظف خدمة العملاء ومسؤول المبيعات. اسمك هو ${botName}. مهمتك مساعدة العملاء والإجابة على استفساراتهم باحترافية واحترام وود.`;
+            
+            // Check if identity exists
+            let identityInst = await Instruction.findOne({ where: { UserId: req.user.id, type: 'global' } });
+            if (identityInst) {
+                identityInst.content = identityContent;
+                identityInst.keywords = 'اسمك ايه, انت مين, وظيفتك, مين معايا';
+                await identityInst.save();
+            } else {
+                await Instruction.create({
+                    clientName: 'إعدادات عامة',
+                    title: 'هوية البوت واسمه',
+                    content: identityContent,
+                    actionTarget: '',
+                    imageUrl: '',
+                    UserId: req.user.id,
+                    keywords: 'اسمك ايه, انت مين, وظيفتك, مين معايا',
+                    type: 'global'
+                });
+            }
+        }
+
+        // Process dynamic items list
+        if (items && Array.isArray(items)) {
+            for (const item of items) {
+                if (item.name && item.details) {
+                    const isService = item.type === 'خدمة';
+                    const isProduct = item.type === 'منتج';
+                    let serviceContent = '';
+                    
+                    if (isService) {
+                        serviceContent = `نحن نقدم خدمة: ${item.name}.\nتفاصيل الخدمة والاستفادة منها: ${item.details}`;
+                    } else if (isProduct) {
+                        serviceContent = `نوفر لك المنتج الرائع: ${item.name}.\nالمواصفات والسعر: ${item.details}`;
+                    } else {
+                        serviceContent = `${item.name}: ${item.details}`;
+                    }
+
+                    let keywordsStr = `${item.name}, السعر, بكام, تفاصيل, معلومات عن`;
+                    if (isProduct) keywordsStr += `, مقاس, الوان, متاح`;
+                    else if (isService) keywordsStr += `, حجز, موعد, ميعاد`;
+
+                    await Instruction.create({
+                        clientName: isService ? 'الخدمات' : (isProduct ? 'المنتجات' : 'أخرى'),
+                        title: item.name,
+                        content: serviceContent,
+                        actionTarget: '',
+                        imageUrl: item.image || '',
+                        UserId: req.user.id,
+                        keywords: keywordsStr,
+                        type: 'topic'
+                    });
+                }
+            }
+        }
+
+        res.json({ success: true, message: 'تم حفظ الإعدادات بنجاح!' });
+    } catch (err) {
+        console.error("Setup Wizard Error:", err);
+        res.status(500).json({ error: "Mission failed. Please try again." });
+    }
+});
+
 router.get('/training', async (req, res) => {
     try {
         const messages = await SimulationMessage.findAll({
@@ -272,18 +348,29 @@ router.get('/training', async (req, res) => {
         const user = await User.findByPk(req.user.id);
         const tokensUsed = user.total_tokens || 0;
 
+        // ======================================================
+        // 📚 المقترح 2 و 3: جلب التعليمات لعرض ID و Keywords
+        // ======================================================
+        const instructions = await Instruction.findAll({
+            where: { UserId: req.user.id },
+            order: [['order', 'ASC'], ['createdAt', 'DESC']],
+            attributes: ['id', 'clientName', 'title', 'keywords', 'type', 'isActive', 'createdAt']
+        });
+
         res.render('training', { 
             user: req.user, 
             page: 'training',
             messages,
             teachMessages,
-            tokensUsed
+            tokensUsed,
+            instructions
         });
     } catch (err) {
         console.error("Training page error:", err);
         res.status(500).send("Error loading training page");
     }
 });
+
 
 router.post('/training/send', async (req, res) => {
     try {

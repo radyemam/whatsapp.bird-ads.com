@@ -3,6 +3,7 @@ import qrcode from 'qrcode';
 import pino from 'pino';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegPath from 'ffmpeg-static';
 import { CONFIG } from '../config.js';
@@ -711,8 +712,8 @@ export const startSession = async (userId, io, phoneNumber = null) => {
                     { logger, reuploadRequest: sock.updateMediaMessage }
                 );
 
-                const tempInput = `temp_${Date.now()}.ogg`;
-                const tempOutput = `temp_${Date.now()}.mp3`;
+                const tempInput = path.join(os.tmpdir(), `temp_${Date.now()}.ogg`);
+                const tempOutput = path.join(os.tmpdir(), `temp_${Date.now()}.mp3`);
                 fs.writeFileSync(tempInput, buffer);
 
                 await new Promise((resolve, reject) => {
@@ -1295,28 +1296,55 @@ export async function simulateChat(userId, userText) {
     }
 }
 
+// ============================================================
+// 🛡️ Conflict Detection Helper
+// يكشف التعارض في الكلمات المفتاحية بين التعليمات الموجودة والجديدة
+// ============================================================
+async function detectKeywordConflicts(userId, newKeywords, excludeId = null) {
+    const normalizeKw = (kw) => kw.toLowerCase().trim();
+    const newKwList = newKeywords.split(',').map(k => normalizeKw(k)).filter(k => k.length > 2);
+    if (newKwList.length === 0) return [];
+
+    const whereClause = { UserId: userId, isActive: true };
+    if (excludeId) whereClause.id = { [Op.ne]: excludeId };
+
+    const existingInstructions = await Instruction.findAll({ where: whereClause });
+
+    const conflicts = [];
+    for (const inst of existingInstructions) {
+        if (!inst.keywords) continue;
+        const existingKwList = inst.keywords.split(',').map(k => normalizeKw(k)).filter(k => k.length > 2);
+        const overlapping = newKwList.filter(k => existingKwList.includes(k));
+        if (overlapping.length > 0) {
+            conflicts.push({
+                id: inst.id,
+                clientName: inst.clientName,
+                overlappingKeywords: overlapping
+            });
+        }
+    }
+    return conflicts;
+}
+
 export async function teachBot(userId, userText) {
     try {
         const user = await User.findByPk(userId);
         
         // System instruction specific to teaching
-        const systemInstruction = `أنت مساعد ذكي مخصص لمديري النظام (لإنشاء أو تحديث أو بحث التعليمات).
-القاعدة الذهبية: يجب عليك استنتاج كافة المعاملات (العنوان clientName، والكلمات المفتاحية keywords) بنفسك بناءً على محتوى رسالة المستخدم، ولا تسأله عنها أبداً.
+        const systemInstruction = `أنت مساعد ذكاء اصطناعي متخصص في إدارة تعليمات البوت. مهمتك الأساسية:
 
-عندما يطلب منك المستخدم إضافة تعليمة أو كيف يرد البوت (مثال: "لما حد يسالك عن السعر قوله 50" أو "احفظ دي: ..."):
-1. استنتج عنواناً مناسباً ومختصراً للتعليمة (clientName).
-2. استنتج 5 كلمات مفتاحية على الأقل (keywords) مفصولة بفاصلة.
-3. استخرج الرد الفعلي الذي يجب على البوت حفظه (content).
-4. استخدم الأداة 'save_instruction' لتخزين التعليمة فوراً بدون أن ترد كنص عادي وتطلب بيانات إضافية.
+1. **عند طلب عرض التعليمات**: استخدم 'list_all_instructions' على الفور لجلب الكل.
+2. **عند طلب كشف التعارضات**: استخدم 'analyze_conflicts' لتحليل الكلمات المفتاحية المتكررة وتقديم مقترحات تعديل محددة.
+3. **عند إضافة تعليمة جديدة**: استنتج العنوان والكلمات المفتاحية والمحتوى تلقائياً واستخدم 'save_instruction'.
+4. **عند طلب تعديل**: استخدم 'update_instruction' مباشرة بدون نقاش.
+5. **عند البحث**: استخدم 'search_instructions'.
 
-عندما يطلب تعديل تعليمة سابقة، استخدم 'update_instruction'.
-إذا سألك عن التعليمات الحالية، استخدم 'search_instructions'.
-
-قواعد هامة:
-1. الكلمات المفتاحية لموضوع معين يجب أن تكون سلسلة نصية بينها فواصل (مثال: "أسعار, باقات, تكلفة").
-2. ضع عنوان (clientName) مختصراً يدل على المحتوى.
-3. نفذ دالة الأدوات (Function Call) بشكل مباشر دون الدخول في نقاشات مع المستخدم حول التفاصيل الناقصة.
-4. إذا سألك المطور أسئلة عامة ليس لها علاقة بحفظ التعليمات، يمكنك الرد بشكل طبيعي.`;
+قواعد ذهبية:
+- لا تسأل المستخدم عن أي تفاصيل. استنتجها بنفسك.
+- عند اقتراح تعديلات لحل التعارضات، قدّم المقترح بشكل واضح مع رقم التعليمة والتعديل المقترح ثم قل "هل تريد تطبيق هذا التعديل؟" وانتظر موافقته.
+- عند الموافقة على مقترح، نفذه فوراً باستخدام 'update_instruction'.
+- الكلمات المفتاحية تكون مفصولة بفاصلة (مثال: "أسعار, باقات, تكلفة").
+- إذا طُلب منك عرض التعليمات، اعرضها بشكل منظم مع الـ ID والعنوان والكلمات المفتاحية.`;
 
         const dbMessages = await TeachMessage.findAll({
             where: { UserId: userId },
@@ -1344,40 +1372,62 @@ export async function teachBot(userId, userText) {
                     function_declarations: [
                         {
                             name: "save_instruction",
-                            description: "إضافة تعليمات (Instruction) جديدة للبوت ليحفظها",
+                            description: "إضافة تعليمات جديدة للبوت",
                             parameters: {
                                 type: "OBJECT",
                                 properties: {
-                                    clientName: { type: "STRING", description: "عنوان التعليمة (مثال: مواعيد العمل)" },
-                                    keywords: { type: "STRING", description: "الكلمات المفتاحية مفصولة بفاصلة. أضف 5 على الأقل" },
-                                    content: { type: "STRING", description: "رد البوت الفعلي الدقيق المطلوب حفظه" }
+                                    clientName: { type: "STRING", description: "عنوان التعليمة" },
+                                    keywords: { type: "STRING", description: "الكلمات المفتاحية مفصولة بفاصلة (5 على الأقل)" },
+                                    content: { type: "STRING", description: "محتوى التعليمة" }
                                 },
                                 required: ["clientName", "keywords", "content"]
                             }
                         },
                         {
                             name: "update_instruction",
-                            description: "تحديث تعليمة للبوت",
+                            description: "تعديل تعليمة موجودة بالـ ID",
                             parameters: {
                                 type: "OBJECT",
                                 properties: {
                                     id: { type: "INTEGER", description: "رقم التعليمة (ID)" },
-                                    clientName: { type: "STRING" },
-                                    keywords: { type: "STRING" },
-                                    content: { type: "STRING" }
+                                    clientName: { type: "STRING", description: "العنوان الجديد (اختياري)" },
+                                    keywords: { type: "STRING", description: "الكلمات المفتاحية الجديدة (اختياري)" },
+                                    content: { type: "STRING", description: "المحتوى الجديد" }
                                 },
                                 required: ["id", "content"]
                             }
                         },
                         {
                             name: "search_instructions",
-                            description: "البحث عن التعليمات المحفوظة لكلمة معينة لو أردت تعديلها أو التحقق منها",
+                            description: "البحث في التعليمات بكلمة معينة",
                             parameters: {
                                 type: "OBJECT",
                                 properties: {
-                                    query: { type: "STRING", description: "كلمة للبحث في العنوان أو التفاصيل" }
+                                    query: { type: "STRING", description: "كلمة البحث" }
                                 },
                                 required: ["query"]
+                            }
+                        },
+                        {
+                            name: "list_all_instructions",
+                            description: "جلب كل التعليمات المحفوظة وعرضها مع الكلمات المفتاحية والـ ID لكل منها",
+                            parameters: {
+                                type: "OBJECT",
+                                properties: {
+                                    show_keywords: { type: "BOOLEAN", description: "عرض الكلمات المفتاحية مع كل تعليمة" }
+                                },
+                                required: []
+                            }
+                        },
+                        {
+                            name: "analyze_conflicts",
+                            description: "تحليل كل التعليمات واكتشاف التعارضات في الكلمات المفتاحية وتقديم مقترحات لحلها",
+                            parameters: {
+                                type: "OBJECT",
+                                properties: {
+                                    auto_suggest: { type: "BOOLEAN", description: "تقديم مقترحات تلقائية لحل التعارضات" }
+                                },
+                                required: []
                             }
                         }
                     ]
@@ -1416,7 +1466,49 @@ export async function teachBot(userId, userText) {
             const args = part.functionCall.args;
 
             if (fnName === 'save_instruction') {
-                await Instruction.create({
+                // ============================================
+                // 🔍 المقترح 1: تحقق من التكرار قبل الحفظ
+                // ============================================
+                const existingByName = await Instruction.findOne({
+                    where: {
+                        UserId: userId,
+                        clientName: { [Op.like]: `%${args.clientName}%` }
+                    }
+                });
+
+                if (existingByName) {
+                    return `⚠️ **تنبيه:** يوجد بالفعل تعليمة مشابهة بنفس الاسم!\n\n📌 ID: ${existingByName.id} | الاسم: "${existingByName.clientName}"\nالمحتوى: ${existingByName.content.substring(0, 100)}...\n\nهل تريد تعديل التعليمة الموجودة؟ قل لي: "عدل التعليمة رقم ${existingByName.id} وضيف: [الإضافة]"\nأو قل "احفظها كتعليمة منفصلة" لو كانت مختلفة فعلاً.`;
+                }
+
+                // ============================================
+                // ⚔️ المقترح 4: كشف تعارض الكلمات المفتاحية
+                // ============================================
+                const conflicts = await detectKeywordConflicts(userId, args.keywords || '');
+
+                if (conflicts.length > 0) {
+                    // حفظ التعليمة رغم التعارض لكن إبلاغ المستخدم
+                    const newInst = await Instruction.create({
+                        clientName: args.clientName,
+                        title: args.clientName,
+                        content: args.content,
+                        actionTarget: '',
+                        UserId: userId,
+                        keywords: args.keywords,
+                        type: 'topic'
+                    });
+
+                    const conflictDetails = conflicts.map(c =>
+                        `  🔴 ID: ${c.id} | "${c.clientName}" → كلمات مشتركة: [${c.overlappingKeywords.join(', ')}]`
+                    ).join('\n');
+
+                    return `✅ تم حفظ التعليمة "${args.clientName}" بنجاح (ID: ${newInst.id})\n\n` +
+                        `⚔️ **تحذير: تعارض في الكلمات المفتاحية!**\n` +
+                        `التعليمات التالية تحتوي على كلمات مفتاحية مشتركة وقد تسبب ردوداً غير متوقعة:\n\n${conflictDetails}\n\n` +
+                        `💡 **نصيحة:** استخدم "عدل التعليمة رقم [ID]" لتغيير الكلمات المفتاحية المكررة، أو تأكد إن كل تعليمة عندها كلمات مفتاحية مختلفة تماماً.`;
+                }
+
+                // حفظ عادي بدون أي تعارض
+                const newInst = await Instruction.create({
                     clientName: args.clientName,
                     title: args.clientName,
                     content: args.content,
@@ -1425,16 +1517,38 @@ export async function teachBot(userId, userText) {
                     keywords: args.keywords,
                     type: 'topic'
                 });
-                return `✅ تم استخراج وحفظ التعليمة بنجاح تحت اسم "${args.clientName}". هل ترغب في إضافة شيء آخر؟`;
+                return `✅ تم حفظ التعليمة "${args.clientName}" بنجاح! (ID: ${newInst.id})\n\nالكلمات المفتاحية المسجلة: ${args.keywords}\n\nيمكنك الآن تجربتها في شات الاختبار. هل تريد إضافة شيء آخر؟`;
             } 
             else if (fnName === 'update_instruction') {
-                await Instruction.update({
-                    clientName: args.clientName,
-                    title: args.clientName,
-                    content: args.content,
-                    keywords: args.keywords
-                }, { where: { id: args.id, UserId: userId } });
-                return `✅ تم تعديل التعليمة رقم ${args.id} بنجاح.`;
+                // ============================================
+                // ⚔️ كشف التعارض عند التعديل أيضاً
+                // ============================================
+                if (args.keywords) {
+                    const conflicts = await detectKeywordConflicts(userId, args.keywords, args.id);
+                    await Instruction.update({
+                        clientName: args.clientName,
+                        title: args.clientName,
+                        content: args.content,
+                        keywords: args.keywords
+                    }, { where: { id: args.id, UserId: userId } });
+
+                    if (conflicts.length > 0) {
+                        const conflictDetails = conflicts.map(c =>
+                            `  🔴 ID: ${c.id} | "${c.clientName}" → كلمات مشتركة: [${c.overlappingKeywords.join(', ')}]`
+                        ).join('\n');
+                        return `✅ تم تعديل التعليمة رقم ${args.id} بنجاح.\n\n` +
+                            `⚔️ **تحذير: لا تزال هناك تعارضات في الكلمات المفتاحية:**\n${conflictDetails}`;
+                    }
+                    return `✅ تم تعديل التعليمة رقم ${args.id} بنجاح. ✨ لا توجد تعارضات في الكلمات المفتاحية.`;
+                } else {
+                    await Instruction.update({
+                        clientName: args.clientName,
+                        title: args.clientName,
+                        content: args.content,
+                        keywords: args.keywords
+                    }, { where: { id: args.id, UserId: userId } });
+                    return `✅ تم تعديل التعليمة رقم ${args.id} بنجاح.`;
+                }
             }
             else if (fnName === 'search_instructions') {
                 const results = await Instruction.findAll({
@@ -1442,13 +1556,95 @@ export async function teachBot(userId, userText) {
                         UserId: userId,
                         [Op.or]: [
                             { clientName: { [Op.like]: `%${args.query}%` } },
-                            { content: { [Op.like]: `%${args.query}%` } }
+                            { content: { [Op.like]: `%${args.query}%` } },
+                            { keywords: { [Op.like]: `%${args.query}%` } }
                         ]
                     },
-                    limit: 3
+                    limit: 5
                 });
                 if (results.length === 0) return `لم أجد أي تعليمات مسجلة متعلقة بـ: "${args.query}"`;
-                return `وجدت التعليمات التالية:\n` + results.map(r => `ID: ${r.id} | العنوان: ${r.clientName}\n المحتوى: ${r.content}`).join('\n\n');
+                return `وجدت ${results.length} تعليمة:\n\n` + results.map(r =>
+                    `📌 ID: ${r.id} | "${r.clientName}"\n   📝 المحتوى: ${r.content.substring(0, 80)}...\n   🔑 الكلمات المفتاحية: ${r.keywords || 'لا يوجد'}`
+                ).join('\n\n');
+            }
+            else if (fnName === 'list_all_instructions') {
+                const allInstructions = await Instruction.findAll({
+                    where: { UserId: userId },
+                    order: [['order', 'ASC'], ['createdAt', 'DESC']],
+                    attributes: ['id', 'clientName', 'content', 'keywords', 'type', 'isActive']
+                });
+                if (allInstructions.length === 0) {
+                    return '📭 لا توجد تعليمات محفوظة حتى الآن. ابدأ بإضافة تعليمة جديدة!';
+                }
+                const activeCount = allInstructions.filter(i => i.isActive).length;
+                const inactiveCount = allInstructions.length - activeCount;
+                let response = `📚 **إجمالي التعليمات: ${allInstructions.length}** (${activeCount} نشطة | ${inactiveCount} معطلة)\n\n`;
+                response += allInstructions.map(r => {
+                    const statusIcon = r.isActive ? '🟢' : '🔴';
+                    const typeIcon = r.type === 'global' ? '🌐' : '🎯';
+                    const kwList = r.keywords ? r.keywords.split(',').map(k => k.trim()).slice(0, 5).join(', ') : 'لا يوجد';
+                    const contentPreview = r.content ? r.content.substring(0, 60) + (r.content.length > 60 ? '...' : '') : '';
+                    return `${statusIcon} ${typeIcon} **ID: ${r.id}** | ${r.clientName}\n   📝 ${contentPreview}\n   🔑 ${kwList}`;
+                }).join('\n\n');
+                return response;
+            }
+            else if (fnName === 'analyze_conflicts') {
+                const allInstructions = await Instruction.findAll({
+                    where: { UserId: userId, isActive: true },
+                    attributes: ['id', 'clientName', 'keywords', 'content']
+                });
+                if (allInstructions.length === 0) {
+                    return '📭 لا توجد تعليمات لتحليلها.';
+                }
+                // Build keyword map
+                const kwMap = {};
+                const normalizeKw = (kw) => kw.toLowerCase().trim();
+                allInstructions.forEach(inst => {
+                    if (!inst.keywords) return;
+                    inst.keywords.split(',').map(k => normalizeKw(k)).filter(k => k.length > 2).forEach(kw => {
+                        if (!kwMap[kw]) kwMap[kw] = [];
+                        kwMap[kw].push({ id: inst.id, clientName: inst.clientName });
+                    });
+                });
+                // Find conflicts
+                const conflicts = [];
+                Object.entries(kwMap).forEach(([kw, instList]) => {
+                    if (instList.length > 1) {
+                        conflicts.push({ keyword: kw, instructions: instList });
+                    }
+                });
+                if (conflicts.length === 0) {
+                    return `✅ **ممتاز! لا يوجد أي تعارض في الكلمات المفتاحية.**\n\nجميع التعليمات (${allInstructions.length}) لديها كلمات مفتاحية فريدة ومتمايزة. البوت سيعمل بكفاءة عالية.`;
+                }
+                // Group conflicts by instruction
+                const instConflictMap = {};
+                conflicts.forEach(({ keyword, instructions }) => {
+                    instructions.forEach(inst => {
+                        if (!instConflictMap[inst.id]) instConflictMap[inst.id] = { clientName: inst.clientName, conflictingKws: [], conflictsWith: new Set() };
+                        instConflictMap[inst.id].conflictingKws.push(keyword);
+                        instructions.forEach(other => { if (other.id !== inst.id) instConflictMap[inst.id].conflictsWith.add(`ID:${other.id} "${other.clientName}"`); });
+                    });
+                });
+                let response = `⚔️ **وجدت ${conflicts.length} تعارض في الكلمات المفتاحية:**\n\n`;
+                response += `**التعليمات المتأثرة:**\n`;
+                Object.entries(instConflictMap).forEach(([id, data]) => {
+                    const conflictsWithList = [...data.conflictsWith].join(', ');
+                    response += `🔴 **ID: ${id}** | "${data.clientName}"\n`;
+                    response += `   ↳ الكلمات المتعارضة: [${data.conflictingKws.map(k => '"' + k + '"').join(', ')}]\n`;
+                    response += `   ↳ تتعارض مع: ${conflictsWithList}\n\n`;
+                });
+                response += `\n💡 **مقترحات لإصلاح التعارضات:**\n`;
+                // Generate suggestions per conflicting pair
+                const processedPairs = new Set();
+                conflicts.forEach(({ keyword, instructions }) => {
+                    const pairKey = instructions.map(i => i.id).sort().join('-');
+                    if (processedPairs.has(pairKey)) return;
+                    processedPairs.add(pairKey);
+                    response += `\n📌 كلمة "${keyword}" مكررة في: ${instructions.map(i => `ID:${i.id} "${i.clientName}"`).join(' و ')}\n`;
+                    response += `   ✏️ المقترح: احذف "${keyword}" من التعليمات التي لا تتعلق مباشرة بها وأبقها فقط في الأنسب.\n`;
+                });
+                response += `\n📣 قل لي "طبّق المقترح على ID [رقم]" لتعديل كلماتها المفتاحية أو قل "عدل التعليمة رقم [ID] وشيل كلمة [كلمة] من Keywords" للتعديل اليدوي.`;
+                return response;
             }
         }
 

@@ -15,6 +15,8 @@ import bodyParser from 'body-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
+
 
 import sequelize from './config/database.js';
 import passportConfig from './config/passport.js';
@@ -82,6 +84,16 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Global Rate limiter
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 200, // limit each IP to 200 requests per windowMs
+    message: "Too many requests from this IP, please try again after 15 minutes",
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use(limiter);
+
 // Parser
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -113,6 +125,12 @@ app.use('/admin', adminRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/api/bot', apiDashboardRoutes);
 app.use('/', messengerRoutes); // Messenger Webhook + Dashboard routes
+
+app.use((err, req, res, next) => {
+    console.error('⚠️ [Server Error Handled]', err.stack);
+    res.status(500).send('Something broke. System error.');
+});
+
 
 // Socket.io
 io.on('connection', (socket) => {

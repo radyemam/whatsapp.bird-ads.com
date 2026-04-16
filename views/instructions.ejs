@@ -8,6 +8,143 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="/style.css?v=<%= Date.now() %>" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<style>
+    /* ===== Keywords / Conflict Panel ===== */
+    .kw-panel {
+        background: #1e1e2d;
+        border-radius: 12px;
+        border: 1px solid #323248;
+        margin-top: 28px;
+        overflow: hidden;
+    }
+    .kw-panel-header {
+        background: #2b2b40;
+        padding: 14px 20px;
+        border-bottom: 1px solid #323248;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .kw-table-wrap {
+        overflow-x: auto;
+        max-height: 340px;
+        overflow-y: auto;
+    }
+    .kw-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        min-width: 500px;
+    }
+    .kw-table th {
+        background: #212135;
+        color: #8899ac;
+        padding: 10px 14px;
+        text-align: right;
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        border-bottom: 1px solid #323248;
+        white-space: nowrap;
+    }
+    .kw-table td {
+        padding: 9px 14px;
+        border-bottom: 1px solid #1e1e2d;
+        color: #e4e6ef;
+        vertical-align: top;
+    }
+    .kw-table tr:hover td {
+        background: rgba(54, 153, 255, 0.05);
+    }
+    .kw-table tr.has-conflict td {
+        background: rgba(255, 100, 100, 0.06);
+    }
+    .kw-table tr.has-conflict:hover td {
+        background: rgba(255, 100, 100, 0.12);
+    }
+    .badge-id {
+        background: #3699ff22;
+        color: #3699ff;
+        border: 1px solid #3699ff44;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-weight: bold;
+        font-family: monospace;
+        font-size: 12px;
+    }
+    .badge-kw-global {
+        background: #1bc5bd22;
+        color: #1bc5bd;
+        border: 1px solid #1bc5bd44;
+        padding: 2px 7px;
+        border-radius: 4px;
+        font-size: 11px;
+    }
+    .badge-kw-topic {
+        background: #8950fc22;
+        color: #8950fc;
+        border: 1px solid #8950fc44;
+        padding: 2px 7px;
+        border-radius: 4px;
+        font-size: 11px;
+    }
+    .badge-conflict {
+        background: #ff646422;
+        color: #ff6464;
+        border: 1px solid #ff646444;
+        padding: 2px 7px;
+        border-radius: 4px;
+        font-size: 11px;
+    }
+    .kw-tag {
+        display: inline-block;
+        background: #2b2b40;
+        color: #a0a0c0;
+        border: 1px solid #323248;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        margin: 2px 2px 2px 0;
+    }
+    .kw-tag.conflict-kw {
+        background: #ff646422;
+        color: #ff9494;
+        border-color: #ff646444;
+        cursor: help;
+    }
+    .copy-id-btn {
+        background: none;
+        border: none;
+        color: #3699ff;
+        cursor: pointer;
+        padding: 0 4px;
+        font-size: 13px;
+        opacity: 0.6;
+        transition: 0.2s;
+    }
+    .copy-id-btn:hover { opacity: 1; }
+    .kw-search {
+        background: #2b2b40;
+        border: 1px solid #323248;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 6px;
+        outline: none;
+        font-size: 13px;
+        width: 200px;
+        max-width: 100%;
+    }
+    .kw-search:focus { border-color: #3699ff; }
+    @media (max-width: 576px) {
+        .kw-panel-header { flex-direction: column; align-items: flex-start; }
+        .kw-search { width: 100%; }
+    }
+</style>
 </head>
 
 <body>
@@ -50,8 +187,6 @@
                                 </button>
                             </div>
 
-
-
                             <% if (instructions.length===0) { %>
                                 <div class="text-center py-5 glass-card mb-4"
                                     style="background: rgba(255,255,255,0.03);">
@@ -68,183 +203,128 @@
                                         data-bs-toggle="modal" data-bs-target="#addModal">أضف معلومات شغلك
                                         دلوقتي</button>
                                 </div>
-                                <% } else { %>
-                                    <div class="instructions-list">
-                                        <% instructions.forEach(inst=> { %>
-                                            <div class="instruction-item">
-                                                <div
-                                                    class="instruction-header d-flex justify-content-between align-items-center gap-3">
-                                                    <!-- Left Side: Title & Badges -->
-                                                    <div class="d-flex flex-wrap gap-2 align-items-center">
-                                                        <span class="badge bg-primary px-3 py-2 rounded-pill">
-                                                            <%= inst.clientName %>
-                                                        </span>
-                                                        <% if (inst.actionTarget) { %>
-                                                            <span class="badge bg-success px-3 py-2 rounded-pill">
-                                                                📤 <%= inst.actionTarget %>
-                                                            </span>
-                                                            <% } %>
-                                                    </div>
+                            <% } else { %>
+                                <div class="kw-panel mt-0" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05);">
+                                    <div class="kw-panel-header" style="background: rgba(0, 0, 0, 0.2); border-color: rgba(255, 255, 255, 0.05);">
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                            <span class="text-white fw-bold"><i class="bi bi-table"></i> جدول التعليمات والكلمات المفتاحية</span>
+                                            <span class="text-white-50 small">(<%= instructions.length %> تعليمة)</span>
+                                            <span id="kwConflictBadge" class="badge-conflict" style="display:none;"></span>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                            <input type="text" id="kwSearch" class="kw-search" placeholder="🔍 بحث عن تعليمات...">
+                                            <span class="text-white-50 small">
+                                                <span class="kw-tag conflict-kw">تعارض</span> = كلمة مكررة
+                                            </span>
+                                            <button class="btn btn-sm btn-danger d-none" id="btnDeleteSelected" title="حذف المحدد">حذف المحدد (<span id="selectedCount">0</span>)</button>
+                                            <button class="btn btn-sm btn-outline-danger" id="btnDeleteAll" title="حذف الكل">حذف الكل</button>
+                                        </div>
+                                    </div>
 
-                                                    <!-- Desktop Actions (Hidden on Mobile) -->
-                                                    <div
-                                                        class="action-buttons d-none d-md-flex align-items-center gap-2">
-                                                        <button class="btn btn-sm btn-outline-info rounded-pill px-3"
-                                                            onclick="editInstruction(this)" data-id="<%= inst.id %>"
-                                                            data-client-name="<%= inst.clientName %>"
-                                                            data-content="<%= inst.content %>"
-                                                            data-action-target="<%= inst.actionTarget %>"
-                                                            data-image-url="<%= inst.imageUrl %>">
-                                                            <i class="bi bi-pencil-square me-1"></i> تعديل
-                                                        </button>
-
-                                                        <form action="/dashboard/instructions/toggle/<%= inst.id %>"
-                                                            method="POST"
-                                                            class="d-inline h-100 d-flex align-items-center">
-                                                            <div class="form-check form-switch m-0"
-                                                                title="اضغط لتغيير الحالة">
-                                                                <input class="form-check-input" type="checkbox"
-                                                                    onchange="this.form.submit()" <%=inst.isActive
-                                                                    ? 'checked' : '' %> style="cursor: pointer; width:
-                                                                3em; height: 1.5em;">
-                                                            </div>
-                                                        </form>
-
-                                                        <form action="/dashboard/instructions/delete" method="POST"
-                                                            class="m-0 d-inline"
-                                                            onsubmit="return confirm('هل أنت متأكد من حذف هذه التعليمات؟')">
-                                                            <input type="hidden" name="id" value="<%= inst.id %>">
-                                                            <button type="submit"
-                                                                class="btn btn-sm btn-outline-danger rounded-pill px-3">
-                                                                <i class="bi bi-trash3 me-1"></i> حذف
+                                    <div class="kw-table-wrap" style="max-height: 600px;">
+                                        <table class="kw-table">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width:40px" class="text-center">
+                                                        <input type="checkbox" id="selectAllInst" class="form-check-input bg-dark border-secondary" style="cursor:pointer;" title="تحديد الكل">
+                                                    </th>
+                                                    <th style="width:65px">ID</th>
+                                                    <th style="min-width:160px">العنوان / التصنيف</th>
+                                                    <th style="min-width:400px">المحتوى والصور</th>
+                                                    <th style="width:80px" class="text-center">الكلمات المفتاحية</th>
+                                                    <th style="width:140px" class="text-center">إجراءات</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="kwTableBody">
+                                                <% instructions.forEach(inst => { %>
+                                                    <tr data-name="<%= inst.clientName.toLowerCase() %>" data-keywords="<%= (inst.keywords || '').toLowerCase() %>" data-id="<%= inst.id %>">
+                                                        <td class="align-middle text-center">
+                                                            <input type="checkbox" class="form-check-input border-secondary inst-checkbox bg-dark" value="<%= inst.id %>" style="cursor:pointer;" data-id="<%= inst.id %>">
+                                                        </td>
+                                                        <td>
+                                                            <span class="badge-id">#<%= inst.id %></span>
+                                                            <button class="copy-id-btn" onclick="copyInstId(<%= inst.id %>)" title="نسخ ID">
+                                                                <i class="bi bi-clipboard"></i>
                                                             </button>
-                                                        </form>
-                                                    </div>
-
-                                                    <!-- Mobile Actions (Dropdown) -->
-                                                    <div class="dropdown d-md-none">
-                                                        <button class="btn btn-link text-white p-0" type="button"
-                                                            data-bs-toggle="dropdown" aria-expanded="false">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="24"
-                                                                height="24" fill="currentColor"
-                                                                class="bi bi-three-dots-vertical" viewBox="0 0 16 16">
-                                                                <path
-                                                                    d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z" />
-                                                            </svg>
-                                                        </button>
-                                                        <ul
-                                                            class="dropdown-menu dropdown-menu-end dropdown-menu-dark shadow border-secondary">
-                                                            <!-- Toggle Action (Text Based) -->
-                                                            <li>
-                                                                <form
-                                                                    action="/dashboard/instructions/toggle/<%= inst.id %>"
-                                                                    method="POST">
-                                                                    <button type="submit"
-                                                                        class="dropdown-item d-flex align-items-center gap-2 <%= inst.isActive ? 'text-warning' : 'text-success' %>">
-                                                                        <% if (inst.isActive) { %>
-                                                                            <svg xmlns="http://www.w3.org/2000/svg"
-                                                                                width="16" height="16"
-                                                                                fill="currentColor"
-                                                                                class="bi bi-pause-circle"
-                                                                                viewBox="0 0 16 16">
-                                                                                <path
-                                                                                    d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
-                                                                                <path
-                                                                                    d="M5 6.25a1.25 1.25 0 1 1 2.5 0v3.5a1.25 1.25 0 1 1-2.5 0v-3.5zm3.5 0a1.25 1.25 0 1 1 2.5 0v3.5a1.25 1.25 0 1 1-2.5 0v-3.5z" />
-                                                                            </svg>
-                                                                            إيقاف مؤقت
-                                                                            <% } else { %>
-                                                                                <svg xmlns="http://www.w3.org/2000/svg"
-                                                                                    width="16" height="16"
-                                                                                    fill="currentColor"
-                                                                                    class="bi bi-play-circle"
-                                                                                    viewBox="0 0 16 16">
-                                                                                    <path
-                                                                                        d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
-                                                                                    <path
-                                                                                        d="M6.271 5.055a.5.5 0 0 1 .52.038l3.5 2.5a.5.5 0 0 1 0 .814l-3.5 2.5A.5.5 0 0 1 6 10.5v-5a.5.5 0 0 1 .271-.445z" />
-                                                                                </svg>
-                                                                                تفعيل
-                                                                                <% } %>
+                                                        </td>
+                                                        <td>
+                                                            <div class="fw-semibold text-white mb-1"><%= inst.clientName %></div>
+                                                            <% if (inst.actionTarget) { %>
+                                                                <span class="badge bg-success px-2 py-1 rounded small">
+                                                                    📤 <%= inst.actionTarget %>
+                                                                </span>
+                                                            <% } %>
+                                                            <% if (inst.type === 'global') { %>
+                                                                <span class="badge-kw-global mt-1 d-inline-block">عام</span>
+                                                            <% } else { %>
+                                                                <span class="badge-kw-topic mt-1 d-inline-block">موضوع</span>
+                                                            <% } %>
+                                                        </td>
+                                                        <td>
+                                                            <div class="text-light mb-2 mt-1 lh-base" style="white-space: pre-wrap; max-height: 160px; overflow-y: auto; font-size: 14.5px;"><%= inst.content %></div>
+                                                            <% if (inst.imageUrl) { %>
+                                                                <div class="d-flex gap-1 flex-wrap">
+                                                                    <% let images=[]; try { if (inst.imageUrl.startsWith('[')) { images=JSON.parse(inst.imageUrl); } else { images=[{ url: inst.imageUrl, description: 'صورة' }]; } } catch (e) { images=[{ url: inst.imageUrl, description: 'صورة' }]; } %>
+                                                                    <% images.forEach(img=> { %>
+                                                                        <img src="<%= img.url %>" alt="<%= img.description %>" title="<%= img.description %>" class="rounded border border-secondary" style="width: 40px; height: 40px; object-fit: cover; cursor: pointer;" onclick="window.open('<%= img.url %>', '_blank')">
+                                                                    <% }) %>
+                                                                </div>
+                                                            <% } %>
+                                                        </td>
+                                                        <td class="align-middle text-center">
+                                                            <% if (inst.keywords) { %>
+                                                                <div class="d-flex justify-content-center align-items-center mb-1">
+                                                                    <button class="btn btn-sm btn-outline-primary py-1 px-3 rounded-pill toggle-kw-btn border-1" onclick="toggleKeywords(<%= inst.id %>)" title="عرض الكلمات المفتاحية">
+                                                                        <i class="bi bi-eye" id="eye-icon-<%= inst.id %>"></i>
                                                                     </button>
+                                                                </div>
+                                                                <div id="kw-container-<%= inst.id %>" class="d-flex flex-wrap justify-content-center gap-1 mt-2" style="display: none !important;">
+                                                                <% inst.keywords.split(',').forEach(kw => { %>
+                                                                    <span class="kw-tag" data-kw="<%= kw.trim().toLowerCase() %>"><%= kw.trim() %></span>
+                                                                <% }) %>
+                                                                </div>
+                                                            <% } else { %>
+                                                                <span class="text-white-50 small">— لا يوجد</span>
+                                                            <% } %>
+                                                        </td>
+                                                        <td class="text-center align-middle">
+                                                            <div class="d-flex justify-content-center align-items-center gap-2">
+                                                                <form action="/dashboard/instructions/toggle/<%= inst.id %>" method="POST" class="m-0" title="تفعيل/تعطيل">
+                                                                    <div class="form-check form-switch m-0 d-flex align-items-center justify-content-center" style="padding-left: 0;">
+                                                                        <input class="form-check-input m-0" type="checkbox" onchange="this.form.submit()" <%= inst.isActive ? 'checked' : '' %> style="cursor: pointer; width: 2.2em; height: 1.1em;">
+                                                                    </div>
                                                                 </form>
-                                                            </li>
-                                                            <li>
-                                                                <hr
-                                                                    class="dropdown-divider border-secondary opacity-25">
-                                                            </li>
-                                                            <!-- Edit Action -->
-                                                            <li>
-                                                                <button
-                                                                    class="dropdown-item d-flex align-items-center gap-2"
+                                                                <button class="btn btn-sm btn-outline-info rounded px-2"
                                                                     onclick="editInstruction(this)"
                                                                     data-id="<%= inst.id %>"
                                                                     data-client-name="<%= inst.clientName %>"
                                                                     data-content="<%= inst.content %>"
                                                                     data-action-target="<%= inst.actionTarget %>"
-                                                                    data-image-url="<%= inst.imageUrl %>">
-                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16"
-                                                                        height="16" fill="currentColor"
-                                                                        class="bi bi-pencil-square" viewBox="0 0 16 16">
-                                                                        <path
-                                                                            d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z" />
-                                                                        <path fill-rule="evenodd"
-                                                                            d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z" />
-                                                                    </svg>
-                                                                    تعديل
+                                                                    data-image-url="<%= inst.imageUrl %>"
+                                                                    data-keywords="<%= inst.keywords || '' %>"
+                                                                    title="تعديل">
+                                                                    <i class="bi bi-pencil-square"></i>
                                                                 </button>
-                                                            </li>
-                                                            <!-- Delete Action -->
-                                                            <li>
-                                                                <form action="/dashboard/instructions/delete"
-                                                                    method="POST" class="d-inline"
-                                                                    onsubmit="return confirm('هل أنت متأكد من حذف هذه التعليمات؟')">
-                                                                    <input type="hidden" name="id"
-                                                                        value="<%= inst.id %>">
-                                                                    <button type="submit"
-                                                                        class="dropdown-item text-danger d-flex align-items-center gap-2">
-                                                                        <svg xmlns="http://www.w3.org/2000/svg"
-                                                                            width="16" height="16" fill="currentColor"
-                                                                            class="bi bi-trash3" viewBox="0 0 16 16">
-                                                                            <path
-                                                                                d="M6.5 8a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 1 0v-3a.5.5 0 0 0-.5-.5Zm2.5 0a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 1 0v-3a.5.5 0 0 0-.5-.5Zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6Z" />
-                                                                            <path
-                                                                                d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1ZM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118ZM2.5 3h11V2h-11v1Z" />
-                                                                        </svg>
-                                                                        حذف
+
+                                                                <form action="/dashboard/instructions/delete" method="POST" class="m-0 d-inline" onsubmit="return confirm('هل أنت متأكد من حذف هذه التعليمات؟')">
+                                                                    <input type="hidden" name="id" value="<%= inst.id %>">
+                                                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded px-2" title="حذف">
+                                                                        <i class="bi bi-trash3"></i>
                                                                     </button>
                                                                 </form>
-                                                            </li>
-                                                        </ul>
-                                                    </div>
-                                                </div>
-                                                <div class="instruction-content">
-                                                    <%= inst.content %>
-                                                </div>
-
-                                                <!-- Display Images (Logic for both String and JSON) -->
-                                                <% if (inst.imageUrl) { %>
-                                                    <div class="instruction-preview-gallery">
-                                                        <% let images=[]; try { if (inst.imageUrl.startsWith('[')) {
-                                                            images=JSON.parse(inst.imageUrl); } else { images=[{ url:
-                                                            inst.imageUrl, description: 'صورة' }]; } } catch (e) {
-                                                            images=[{ url: inst.imageUrl, description: 'صورة' }]; } %>
-                                                            <% images.forEach(img=> { %>
-                                                                <img src="<%= img.url %>" alt="<%= img.description %>"
-                                                                    class="instruction-image"
-                                                                    title="<%= img.description %>"
-                                                                    onclick="window.open('<%= img.url %>', '_blank')">
-                                                                <% }) %>
-                                                    </div>
-                                                    <% } %>
-                                            </div>
-                                            <% }) %>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                <% }) %>
+                                            </tbody>
+                                        </table>
                                     </div>
-                                    <% } %>
+                                </div>
+                            <% } %>
                         </div>
-                    </div>
 
                     <!-- Add Modal -->
+
                     <div class="modal fade" id="addModal" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog modal-lg modal-dialog-centered">
                             <div class="modal-content"
@@ -407,6 +487,18 @@
                                                 style="min-height: 250px;"></textarea>
                                         </div>
 
+                                        <div class="mb-4">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <label class="form-label text-white fw-bold m-0">الكلمات المفتاحية</label>
+                                                <span class="info-btn" data-bs-toggle="popover" tabindex="0" title="الكلمات المفتاحية" data-bs-html="true" data-bs-content="اكتب الكلمة واضغط Enter لإضافتها. والحذف بالضغط على X.">?</span>
+                                            </div>
+                                            <div id="editTagsContainer" class="form-control bg-dark text-white border-secondary d-flex flex-wrap gap-1 align-items-center" style="min-height: 48px; border-radius: 6px; cursor: text;" onclick="document.getElementById('editTagInput').focus()">
+                                                <input type="text" id="editTagInput" class="bg-transparent border-0 text-white flex-grow-1" style="outline: none; min-width: 100px; box-shadow: none;" placeholder="اكتب واضغط Enter...">
+                                            </div>
+                                            <input type="hidden" name="keywords" id="editKeywords">
+                                            <div class="form-text text-white-50 mt-1">تعديل الكلمات المفتاحية بالاضافة والحذف. (اكتب الكلمة واضغط Enter)</div>
+                                        </div>
+
                                         <!-- Image Gallery Section for Edit -->
                                         <div class="mb-4">
                                             <div class="d-flex align-items-center mb-2">
@@ -522,7 +614,175 @@
                                 });
                             });
                         });
+
+                        function toggleKeywords(id) {
+                            const container = document.getElementById(`kw-container-${id}`);
+                            const icon = document.getElementById(`eye-icon-${id}`);
+                            if (container.style.getPropertyValue('display') === 'none') {
+                                container.style.setProperty('display', 'flex', 'important');
+                                icon.classList.remove('bi-eye');
+                                icon.classList.add('bi-eye-slash');
+                            } else {
+                                container.style.setProperty('display', 'none', 'important');
+                                icon.classList.remove('bi-eye-slash');
+                                icon.classList.add('bi-eye');
+                            }
+                        }
+
+                        // ============================================================
+                        // 🛡️ Keywords Display + Conflict Detection Logic
+                        // ============================================================
+                        function copyInstId(id) {
+                            navigator.clipboard.writeText(String(id)).then(() => {
+                                const badges = document.querySelectorAll('.badge-id');
+                                badges.forEach(b => {
+                                    if (b.textContent.trim() === '#' + id) {
+                                        const orig = b.style.background;
+                                        b.style.background = '#1bc5bd44';
+                                        b.style.color = '#1bc5bd';
+                                        setTimeout(() => {
+                                            b.style.background = '';
+                                            b.style.color = '';
+                                        }, 800);
+                                    }
+                                });
+                            }).catch(() => {
+                                const el = document.createElement('textarea');
+                                el.value = String(id);
+                                document.body.appendChild(el);
+                                el.select();
+                                document.execCommand('copy');
+                                document.body.removeChild(el);
+                            });
+                        }
+
+                        document.addEventListener('DOMContentLoaded', () => {
+                            const kwMap = {};
+                            const rows = document.querySelectorAll('#kwTableBody tr[data-keywords]');
+
+                            // 1. حساب تكرار الكلمات
+                            rows.forEach(row => {
+                                const kwStr = row.getAttribute('data-keywords') || '';
+                                if (!kwStr) return;
+                                const kwList = kwStr.split(',').map(k => k.trim()).filter(k => k.length > 2);
+                                kwList.forEach(kw => {
+                                    if (!kwMap[kw]) kwMap[kw] = [];
+                                    kwMap[kw].push(row);
+                                });
+                            });
+
+                            // 2. إيجاد الكلمات المتعارضة
+                            const conflictKws = new Set();
+                            Object.entries(kwMap).forEach(([kw, rowList]) => {
+                                if (rowList.length > 1) {
+                                    conflictKws.add(kw);
+                                    rowList.forEach(r => r.classList.add('has-conflict'));
+                                }
+                            });
+
+                            // 3. تلوين الكلمات المتعارضة
+                            const allKwTags = document.querySelectorAll('.kw-tag[data-kw]');
+                            allKwTags.forEach(tag => {
+                                const kw = tag.getAttribute('data-kw');
+                                if (conflictKws.has(kw)) {
+                                    tag.classList.add('conflict-kw');
+                                    tag.title = '⚠️ هذه الكلمة مكررة في تعليمة أخرى';
+                                }
+                            });
+
+                            // 4. تحديث مؤشر التعارض في البار العلوي
+                            const conflictRows = document.querySelectorAll('#kwTableBody tr.has-conflict');
+                            const badge = document.getElementById('kwConflictBadge');
+                            if (badge && conflictRows.length > 0) {
+                                badge.textContent = `⚠️ يوجد ${conflictRows.length} تعليمات بها تعارض`;
+                                badge.style.display = 'inline-block';
+                            }
+
+                            // 5. وظيفة البحث في الجدول
+                            const searchInput = document.getElementById('kwSearch');
+                            if (searchInput) {
+                                searchInput.addEventListener('input', () => {
+                                    const query = searchInput.value.toLowerCase().trim();
+                                    rows.forEach(row => {
+                                        const name = row.getAttribute('data-name') || '';
+                                        const kws = row.getAttribute('data-keywords') || '';
+                                        if (!query || name.includes(query) || kws.includes(query)) {
+                                            row.style.display = '';
+                                        } else {
+                                            row.style.display = 'none';
+                                        }
+                                    });
+                                });
+                            }
+
+                            // 6. Delete Multiple/All
+                            const selectAllInst = document.getElementById('selectAllInst');
+                            const instCheckboxes = document.querySelectorAll('.inst-checkbox');
+                            const btnDeleteSelected = document.getElementById('btnDeleteSelected');
+                            const btnDeleteAll = document.getElementById('btnDeleteAll');
+                            const selectedCountSpan = document.getElementById('selectedCount');
+
+                            const updateDeleteSelectedBtn = () => {
+                                const selected = document.querySelectorAll('.inst-checkbox:checked').length;
+                                if (selected > 0) {
+                                    btnDeleteSelected.classList.remove('d-none');
+                                    selectedCountSpan.textContent = selected;
+                                } else {
+                                    btnDeleteSelected.classList.add('d-none');
+                                }
+                                if (selectAllInst) {
+                                    selectAllInst.checked = selected === instCheckboxes.length && instCheckboxes.length > 0;
+                                }
+                            };
+
+                            if (selectAllInst) {
+                                selectAllInst.addEventListener('change', (e) => {
+                                    instCheckboxes.forEach(cb => {
+                                        if (cb.closest('tr').style.display !== 'none') {
+                                            cb.checked = e.target.checked;
+                                        }
+                                    });
+                                    updateDeleteSelectedBtn();
+                                });
+                            }
+
+                            instCheckboxes.forEach(cb => cb.addEventListener('change', updateDeleteSelectedBtn));
+
+                            const deleteAction = async (action, ids = []) => {
+                                try {
+                                    document.getElementById('loadingOverlay').classList.remove('d-none');
+                                    const res = await fetch('/dashboard/instructions/delete-multiple', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ action, ids })
+                                    });
+                                    if (res.ok) {
+                                        window.location.reload();
+                                    } else {
+                                        alert('حدث خطأ أثناء الحذف.');
+                                        document.getElementById('loadingOverlay').classList.add('d-none');
+                                    }
+                                } catch (e) {
+                                    alert('لا يوجد اتصال.');
+                                    document.getElementById('loadingOverlay').classList.add('d-none');
+                                }
+                            };
+
+                            if (btnDeleteSelected) {
+                                btnDeleteSelected.addEventListener('click', () => {
+                                    if (!confirm('هل أنت متأكد من حذف التعليمات المحددة؟')) return;
+                                    const ids = Array.from(document.querySelectorAll('.inst-checkbox:checked')).map(cb => cb.value);
+                                    deleteAction('multiple', ids);
+                                });
+                            }
+
+                            if (btnDeleteAll) {
+                                btnDeleteAll.addEventListener('click', () => {
+                                    if (!confirm('هل أنت متأكد من حذف جميع التعليمات بالكامل؟ هذا الإجراء لا يمكن التراجع عنه.')) return;
+                                    deleteAction('all');
+                                });
+                            }
+                        });
                     </script>
 </body>
-
 </html>
