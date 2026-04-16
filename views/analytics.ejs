@@ -3,258 +3,295 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>التحليلات — لوحة التحكم</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="/style.css">
+    <title>التحليلات — لينا بوت</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="/style.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         .stat-card {
-            background: rgba(30,41,59,0.7);
+            background: rgba(30,41,59,0.6);
             border: 1px solid rgba(255,255,255,0.08);
             border-radius: 16px;
-            padding: 24px;
+            padding: 20px 22px;
             display: flex;
             align-items: center;
-            gap: 20px;
-            transition: all 0.3s;
+            gap: 16px;
+            transition: transform 0.25s, box-shadow 0.25s;
         }
-        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(0,0,0,0.3); }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba(0,0,0,0.35); }
         .stat-icon {
-            width: 56px; height: 56px;
-            border-radius: 14px;
+            width: 50px; height: 50px; border-radius: 14px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 24px;
-            flex-shrink: 0;
+            font-size: 22px; flex-shrink: 0;
         }
-        .stat-value { font-size: 2rem; font-weight: 800; color: #f1f5f9; line-height: 1; }
-        .stat-label { font-size: 13px; color: #64748b; margin-top: 4px; }
-        .stat-change { font-size: 12px; margin-top: 6px; }
-        .chart-card { background: rgba(30,41,59,0.7); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 24px; }
-        .chart-title { font-size: 16px; font-weight: 700; color: #f1f5f9; margin-bottom: 20px; }
-        .kw-tag { background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.25); border-radius: 6px; padding: 3px 10px; font-size: 12px; display: inline-block; margin: 2px; }
-        .progress-modern { height: 8px; border-radius: 10px; background: rgba(255,255,255,0.05); }
-        .progress-bar-modern { height: 100%; border-radius: 10px; }
+        .stat-value { font-size: 1.8rem; font-weight: 800; color: #f1f5f9; line-height: 1; }
+        .stat-label { font-size: 12px; color: #64748b; margin-top: 4px; }
+        .chart-card {
+            background: rgba(30,41,59,0.6);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 22px;
+        }
+        .chart-title { font-size: 15px; font-weight: 700; color: #f1f5f9; margin-bottom: 18px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+        .filter-btn-group .btn { font-size: 12px; padding: 4px 12px; border-radius: 8px; }
+        .filter-btn-group .btn.active { background: #6366f1; border-color: #6366f1; color: #fff; }
+        .kw-tag { background: rgba(99,102,241,0.15); color:#818cf8; border:1px solid rgba(99,102,241,0.25); border-radius:6px; padding:2px 8px; font-size:11px; display:inline-block; margin:2px; }
     </style>
 </head>
 <body>
-<%- include('partials/navbar') %>
-<%- include('partials/sidebar', { handoffCount: handoffCount || 0 }) %>
+    <%- include('partials/navbar') %>
+    <%- include('partials/sidebar', { handoffCount: handoffCount || 0 }) %>
 
-<div class="container-fluid main-content px-3 px-lg-5 pb-5 animate-fade-in">
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <h2 class="fw-bold text-white m-0"><i class="bi bi-graph-up-arrow text-primary me-2"></i>لوحة التحليلات</h2>
-        <span class="text-muted" style="font-size:13px;"><i class="bi bi-clock me-1"></i>آخر تحديث: <%= new Date().toLocaleString('ar-EG') %></span>
-    </div>
+    <div class="container-fluid main-content px-4 px-lg-5 pb-5 animate-fade-in">
 
-    <!-- Stats Row -->
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-lg-3">
-            <div class="stat-card">
-                <div class="stat-icon" style="background:rgba(99,102,241,0.15);">💬</div>
-                <div>
-                    <div class="stat-value"><%= totalMessages.toLocaleString('ar-EG') %></div>
-                    <div class="stat-label">إجمالي الرسائل</div>
-                </div>
+        <!-- Page Title + Filter -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 gap-3">
+            <div>
+                <h4 class="fw-bold text-white m-0"><i class="bi bi-graph-up-arrow me-2" style="color:#6366f1;"></i>لوحة التحليلات</h4>
+                <p class="text-white-50 small m-0">مراقبة أداء البوت واستهلاك التوكنز</p>
+            </div>
+            <!-- Date Filter -->
+            <div class="filter-btn-group d-flex gap-2 align-items-center flex-wrap">
+                <span class="text-white-50 small me-1"><i class="bi bi-calendar3 me-1"></i>فلتر:</span>
+                <button class="btn btn-outline-secondary btn-sm active" data-days="7" onclick="setFilter(this, 7)">آخر 7 أيام</button>
+                <button class="btn btn-outline-secondary btn-sm" data-days="30" onclick="setFilter(this, 30)">آخر 30 يوم</button>
+                <button class="btn btn-outline-secondary btn-sm" data-days="90" onclick="setFilter(this, 90)">آخر 3 شهور</button>
+                <button class="btn btn-outline-secondary btn-sm" data-days="0" onclick="setFilter(this, 0)">الكل</button>
             </div>
         </div>
-        <div class="col-6 col-lg-3">
-            <div class="stat-card">
-                <div class="stat-icon" style="background:rgba(16,185,129,0.15);">👥</div>
-                <div>
-                    <div class="stat-value"><%= totalConversations.toLocaleString('ar-EG') %></div>
-                    <div class="stat-label">إجمالي المحادثات</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="stat-card">
-                <div class="stat-icon" style="background:rgba(245,158,11,0.15);">🔔</div>
-                <div>
-                    <div class="stat-value"><%= messagesToday.toLocaleString('ar-EG') %></div>
-                    <div class="stat-label">رسائل اليوم</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="stat-card">
-                <div class="stat-icon" style="background:rgba(239,68,68,0.15);">⚡</div>
-                <div>
-                    <div class="stat-value"><%= tokensUsed.toLocaleString('ar-EG') %></div>
-                    <div class="stat-label">توكنز مستهلكة</div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Second Stats Row -->
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-lg-3">
-            <div class="stat-card">
-                <div class="stat-icon" style="background:rgba(99,102,241,0.15);">📥</div>
-                <div>
-                    <div class="stat-value"><%= inbound.toLocaleString('ar-EG') %></div>
-                    <div class="stat-label">رسائل وردت</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="stat-card">
-                <div class="stat-icon" style="background:rgba(16,185,129,0.15);">📤</div>
-                <div>
-                    <div class="stat-value"><%= outbound.toLocaleString('ar-EG') %></div>
-                    <div class="stat-label">ردود البوت</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="stat-card">
-                <div class="stat-icon" style="background:rgba(245,158,11,0.15);">👤</div>
-                <div>
-                    <div class="stat-value"><%= handoffCount.toLocaleString('ar-EG') %></div>
-                    <div class="stat-label">تحويل للموظف</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="stat-card">
-                <div class="stat-icon" style="background:rgba(139,92,246,0.15);">📋</div>
-                <div>
-                    <div class="stat-value"><%= (totalMessages > 0 ? ((outbound/totalMessages)*100).toFixed(0) : 0) %>%</div>
-                    <div class="stat-label">معدل الرد</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Charts Row -->
-    <div class="row g-3 mb-4">
-        <div class="col-lg-8">
-            <div class="chart-card">
-                <div class="chart-title"><i class="bi bi-bar-chart-line me-2 text-primary"></i>الرسائل آخر 7 أيام</div>
-                <canvas id="messagesChart" height="280"></canvas>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="chart-card h-100">
-                <div class="chart-title"><i class="bi bi-pie-chart me-2 text-primary"></i>توزيع الرسائل</div>
-                <canvas id="donutChart" height="280"></canvas>
-                <div class="mt-3 d-flex flex-column gap-2">
-                    <div class="d-flex align-items-center gap-2">
-                        <div style="width:12px;height:12px;border-radius:3px;background:#6366f1;"></div>
-                        <span style="font-size:13px;color:#94a3b8;">رسائل وردت (<%= inbound %>)</span>
+        <!-- Stats Cards -->
+        <div class="row g-3 mb-4" id="statsRow">
+            <div class="col-6 col-lg-3">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:rgba(99,102,241,0.15);">💬</div>
+                    <div>
+                        <div class="stat-value" id="sTotal"><%= totalMessages.toLocaleString('ar-EG') %></div>
+                        <div class="stat-label">إجمالي الرسائل</div>
                     </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <div style="width:12px;height:12px;border-radius:3px;background:#10b981;"></div>
-                        <span style="font-size:13px;color:#94a3b8;">ردود البوت (<%= outbound %>)</span>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:rgba(16,185,129,0.15);">👥</div>
+                    <div>
+                        <div class="stat-value" id="sConvs"><%= totalConversations.toLocaleString('ar-EG') %></div>
+                        <div class="stat-label">إجمالي المحادثات</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:rgba(245,158,11,0.15);">📅</div>
+                    <div>
+                        <div class="stat-value" id="sToday"><%= messagesToday.toLocaleString('ar-EG') %></div>
+                        <div class="stat-label">رسائل اليوم</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:rgba(239,68,68,0.15);">⚡</div>
+                    <div>
+                        <div class="stat-value"><%= tokensUsed.toLocaleString('ar-EG') %></div>
+                        <div class="stat-label">توكنز مستهلكة</div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Instructions Table -->
-    <div class="row g-3">
-        <div class="col-12">
-            <div class="chart-card">
-                <div class="chart-title"><i class="bi bi-book me-2 text-primary"></i>التعليمات النشطة والكلمات المفتاحية</div>
-                <% if (instructions.length === 0) { %>
-                <div class="text-center text-muted py-4">لا توجد تعليمات نشطة</div>
-                <% } else { %>
-                <div class="table-responsive">
-                    <table class="table table-dark table-hover mb-0" style="font-size:13px;">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>الاسم</th>
-                                <th>النوع</th>
-                                <th>الكلمات المفتاحية</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <% instructions.forEach(inst => { %>
-                            <tr>
-                                <td><span class="badge bg-secondary">#<%= inst.id %></span></td>
-                                <td class="fw-semibold"><%= inst.clientName %></td>
-                                <td>
-                                    <% if (inst.type === 'global') { %>
-                                    <span class="badge" style="background:rgba(16,185,129,0.2);color:#10b981;">🌐 عام</span>
-                                    <% } else { %>
-                                    <span class="badge" style="background:rgba(99,102,241,0.2);color:#818cf8;">🏷️ موضوعي</span>
-                                    <% } %>
-                                </td>
-                                <td>
-                                    <% if (inst.keywords) { %>
-                                        <% inst.keywords.split(',').forEach(kw => { %>
-                                        <span class="kw-tag"><%= kw.trim() %></span>
-                                        <% }) %>
-                                    <% } else { %>
-                                    <span class="text-muted">—</span>
-                                    <% } %>
-                                </td>
-                            </tr>
-                            <% }) %>
-                        </tbody>
-                    </table>
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:rgba(99,102,241,0.15);">📥</div>
+                    <div>
+                        <div class="stat-value" id="sInbound"><%= inbound.toLocaleString('ar-EG') %></div>
+                        <div class="stat-label">رسائل وردت</div>
+                    </div>
                 </div>
-                <% } %>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:rgba(16,185,129,0.15);">📤</div>
+                    <div>
+                        <div class="stat-value" id="sOutbound"><%= outbound.toLocaleString('ar-EG') %></div>
+                        <div class="stat-label">ردود البوت</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:rgba(245,158,11,0.15);">👤</div>
+                    <div>
+                        <div class="stat-value" id="sHandoff"><%= handoffCount.toLocaleString('ar-EG') %></div>
+                        <div class="stat-label">تحويل للموظف</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:rgba(139,92,246,0.15);">📊</div>
+                    <div>
+                        <div class="stat-value" id="sRate"><%= (totalMessages > 0 ? ((outbound/totalMessages)*100).toFixed(0) : 0) %>%</div>
+                        <div class="stat-label">معدل الرد</div>
+                    </div>
+                </div>
             </div>
         </div>
+
+        <!-- Charts -->
+        <div class="row g-3 mb-4">
+            <div class="col-lg-8">
+                <div class="chart-card">
+                    <div class="chart-title">
+                        <span><i class="bi bi-bar-chart-line me-2" style="color:#6366f1;"></i><span id="chartLabel">الرسائل آخر 7 أيام</span></span>
+                    </div>
+                    <canvas id="barChart" height="240"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="chart-card h-100">
+                    <div class="chart-title">
+                        <span><i class="bi bi-pie-chart me-2" style="color:#6366f1;"></i>توزيع الرسائل</span>
+                    </div>
+                    <canvas id="donutChart" height="220"></canvas>
+                    <div class="mt-3 d-flex flex-column gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <div style="width:10px;height:10px;border-radius:3px;background:#6366f1;flex-shrink:0;"></div>
+                            <span style="font-size:12px;color:#94a3b8;">رسائل وردت (<span id="donutIn"><%= inbound %></span>)</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div style="width:10px;height:10px;border-radius:3px;background:#10b981;flex-shrink:0;"></div>
+                            <span style="font-size:12px;color:#94a3b8;">ردود البوت (<span id="donutOut"><%= outbound %></span>)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions Table -->
+        <div class="chart-card">
+            <div class="chart-title"><span><i class="bi bi-book me-2" style="color:#6366f1;"></i>التعليمات النشطة</span></div>
+            <% if (instructions.length === 0) { %>
+            <div class="text-center text-muted py-4" style="font-size:13px;">لا توجد تعليمات نشطة</div>
+            <% } else { %>
+            <div class="table-responsive">
+                <table class="table table-dark table-hover table-borderless mb-0" style="font-size:13px;">
+                    <thead style="background:rgba(255,255,255,0.04);">
+                        <tr>
+                            <th style="width:60px;">ID</th>
+                            <th>الاسم</th>
+                            <th style="width:100px;">النوع</th>
+                            <th>الكلمات المفتاحية</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% instructions.forEach(inst => { %>
+                        <tr>
+                            <td><span class="badge bg-secondary">#<%= inst.id %></span></td>
+                            <td class="fw-semibold text-white"><%= inst.clientName %></td>
+                            <td>
+                                <% if (inst.type === 'global') { %>
+                                <span class="badge" style="background:rgba(16,185,129,0.2);color:#10b981;">🌐 عام</span>
+                                <% } else { %>
+                                <span class="badge" style="background:rgba(99,102,241,0.2);color:#818cf8;">🏷️ موضوعي</span>
+                                <% } %>
+                            </td>
+                            <td>
+                                <% if (inst.keywords) { inst.keywords.split(',').forEach(kw => { %>
+                                <span class="kw-tag"><%= kw.trim() %></span>
+                                <% }) } else { %><span class="text-muted">—</span><% } %>
+                            </td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+            <% } %>
+        </div>
     </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-const chartData = <%- last7Days %>;
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    // ── Initial data from server ──
+    const rawChartData = <%- last7Days %>;
+    let barChart, donutChart;
 
-// Messages Bar Chart
-const ctx1 = document.getElementById('messagesChart').getContext('2d');
-new Chart(ctx1, {
-    type: 'bar',
-    data: {
-        labels: chartData.map(d => d.label),
-        datasets: [{
-            label: 'الرسائل',
-            data: chartData.map(d => d.count),
-            backgroundColor: 'rgba(99,102,241,0.5)',
-            borderColor: '#6366f1',
-            borderWidth: 2,
-            borderRadius: 8,
-            borderSkipped: false,
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: { legend: { display: false }, tooltip: { rtl: true } },
-        scales: {
-            x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-            y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true }
-        }
+    // ── Build Charts ──
+    function buildBarChart(data) {
+        const ctx = document.getElementById('barChart').getContext('2d');
+        if (barChart) barChart.destroy();
+        barChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.map(d => d.label),
+                datasets: [{
+                    label: 'الرسائل',
+                    data: data.map(d => d.count),
+                    backgroundColor: 'rgba(99,102,241,0.45)',
+                    borderColor: '#6366f1',
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                    hoverBackgroundColor: 'rgba(99,102,241,0.75)',
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: { duration: 500 },
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#64748b', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+                    y: { ticks: { color: '#64748b', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true }
+                }
+            }
+        });
     }
-});
 
-// Donut Chart
-const ctx2 = document.getElementById('donutChart').getContext('2d');
-new Chart(ctx2, {
-    type: 'doughnut',
-    data: {
-        labels: ['وردت', 'ردود البوت'],
-        datasets: [{
-            data: [<%= inbound %>, <%= outbound %>],
-            backgroundColor: ['rgba(99,102,241,0.7)', 'rgba(16,185,129,0.7)'],
-            borderColor: ['#6366f1', '#10b981'],
-            borderWidth: 2,
-            hoverOffset: 8
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: { display: false }
-        },
-        cutout: '65%'
+    function buildDonutChart(inVal, outVal) {
+        const ctx = document.getElementById('donutChart').getContext('2d');
+        if (donutChart) donutChart.destroy();
+        donutChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['وردت', 'ردود البوت'],
+                datasets: [{ data: [inVal, outVal], backgroundColor: ['rgba(99,102,241,0.7)', 'rgba(16,185,129,0.7)'], borderColor: ['#6366f1','#10b981'], borderWidth: 2, hoverOffset: 8 }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } }, cutout: '65%', animation: { duration: 500 } }
+        });
     }
-});
-</script>
+
+    buildBarChart(rawChartData);
+    buildDonutChart(<%= inbound %>, <%= outbound %>);
+
+    // ── Date Filter ──
+    async function setFilter(btn, days) {
+        document.querySelectorAll('.filter-btn-group .btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const labels = { 7: 'الرسائل آخر 7 أيام', 30: 'الرسائل آخر 30 يوم', 90: 'الرسائل آخر 3 شهور', 0: 'كل الرسائل' };
+        document.getElementById('chartLabel').textContent = labels[days] || '';
+
+        // Fetch filtered stats from server
+        const res = await fetch(`/dashboard/analytics/data?days=${days}`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // Update stats
+        document.getElementById('sTotal').textContent    = data.totalMessages.toLocaleString('ar-EG');
+        document.getElementById('sInbound').textContent  = data.inbound.toLocaleString('ar-EG');
+        document.getElementById('sOutbound').textContent = data.outbound.toLocaleString('ar-EG');
+        document.getElementById('sHandoff').textContent  = data.handoffCount.toLocaleString('ar-EG');
+        document.getElementById('sConvs').textContent    = data.totalConversations.toLocaleString('ar-EG');
+        document.getElementById('sRate').textContent     = (data.totalMessages > 0 ? ((data.outbound/data.totalMessages)*100).toFixed(0) : 0) + '%';
+        document.getElementById('donutIn').textContent   = data.inbound;
+        document.getElementById('donutOut').textContent  = data.outbound;
+
+        buildBarChart(data.chartData);
+        buildDonutChart(data.inbound, data.outbound);
+    }
+    </script>
 </body>
 </html>

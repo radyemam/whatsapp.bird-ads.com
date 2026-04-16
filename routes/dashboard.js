@@ -655,4 +655,39 @@ router.get('/analytics', async (req, res) => {
     }
 });
 
+// Analytics JSON API (for date filter)
+router.get('/analytics/data', async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const days = parseInt(req.query.days) || 7;
+        const now = new Date();
+        const today = new Date(); today.setHours(0,0,0,0);
+        const dateFilter = days > 0 ? { [Op.gte]: new Date(now - days * 24 * 60 * 60 * 1000) } : {};
+        const msgWhere = days > 0 ? { UserId: userId, createdAt: dateFilter } : { UserId: userId };
+
+        const totalMessages = await Message.count({ where: msgWhere });
+        const inbound  = await Message.count({ where: { ...msgWhere, role: 'user' } });
+        const outbound = await Message.count({ where: { ...msgWhere, role: 'model' } });
+        const convWhere = days > 0 ? { UserId: userId, lastMessageAt: dateFilter } : { UserId: userId };
+        const totalConversations = await Conversation.count({ where: convWhere });
+        const handoffCount = await Conversation.count({ where: { ...convWhere, is_handoff: true } });
+        const messagesToday = await Message.count({ where: { UserId: userId, createdAt: { [Op.gte]: today } } });
+
+        // Chart: build N days of data
+        const numDays = days > 0 ? Math.min(days, 90) : 30;
+        const chartData = [];
+        for (let i = numDays - 1; i >= 0; i--) {
+            const dayStart = new Date(now); dayStart.setDate(dayStart.getDate() - i); dayStart.setHours(0,0,0,0);
+            const dayEnd = new Date(dayStart); dayEnd.setHours(23,59,59,999);
+            const count = await Message.count({ where: { UserId: userId, createdAt: { [Op.between]: [dayStart, dayEnd] } } });
+            chartData.push({ label: dayStart.toLocaleDateString('ar-EG', { weekday: 'short', month: 'numeric', day: 'numeric' }), count });
+        }
+
+        res.json({ totalMessages, inbound, outbound, totalConversations, handoffCount, messagesToday, chartData });
+    } catch (err) {
+        console.error('Analytics Data API error:', err);
+        res.status(500).json({ error: 'Failed to load analytics data' });
+    }
+});
+
 export default router;

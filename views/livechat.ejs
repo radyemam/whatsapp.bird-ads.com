@@ -3,276 +3,393 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Chat — لوحة التحكم</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="/style.css">
+    <title>Live Chat — لينا بوت</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="/style.css" rel="stylesheet">
     <style>
-        .livechat-wrapper { display: flex; height: calc(100vh - 140px); gap: 0; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); }
-        .contacts-panel { width: 320px; min-width: 280px; background: #1a1a2e; border-left: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; }
-        .contacts-header { padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; }
-        .contacts-search input { background: #0f0f23; border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 10px; padding: 8px 12px; width: 100%; font-size: 13px; }
-        .contacts-search input:focus { outline: none; border-color: #6366f1; }
-        .contacts-list { flex: 1; overflow-y: auto; }
-        .contact-item { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 12px; }
-        .contact-item:hover { background: rgba(99,102,241,0.1); }
-        .contact-item.active { background: rgba(99,102,241,0.2); border-right: 3px solid #6366f1; }
-        .contact-avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; color: white; flex-shrink: 0; position: relative; }
-        .handoff-dot { position: absolute; top: 0; right: 0; width: 12px; height: 12px; border-radius: 50%; background: #f59e0b; border: 2px solid #1a1a2e; }
-        .contact-info { flex: 1; overflow: hidden; }
-        .contact-name { font-weight: 600; font-size: 14px; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .contact-preview { font-size: 12px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
-        .contact-meta { text-align: left; flex-shrink: 0; }
-        .contact-time { font-size: 11px; color: #475569; }
-        .unread-badge { background: #6366f1; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; margin-top: 4px; margin-left: auto; }
-        /* Chat Area */
-        .chat-area { flex: 1; display: flex; flex-direction: column; background: #0f0f23; }
-        .chat-header-bar { padding: 14px 20px; background: #1a1a2e; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; }
-        .chat-messages-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
-        .msg-bubble { max-width: 70%; padding: 10px 16px; border-radius: 14px; font-size: 14px; line-height: 1.5; word-break: break-word; }
-        .msg-in { background: #1e293b; color: #e2e8f0; align-self: flex-end; border-bottom-right-radius: 4px; }
-        .msg-out { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; align-self: flex-start; border-bottom-left-radius: 4px; }
-        .msg-time { font-size: 10px; opacity: 0.6; margin-top: 4px; }
-        .chat-input-bar { padding: 14px 16px; background: #1a1a2e; border-top: 1px solid rgba(255,255,255,0.08); display: flex; gap: 10px; align-items: flex-end; }
-        .chat-input-bar textarea { flex: 1; background: #0f0f23; border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 12px; padding: 10px 14px; resize: none; font-size: 14px; min-height: 44px; max-height: 120px; overflow-y: auto; }
-        .chat-input-bar textarea:focus { outline: none; border-color: #6366f1; }
-        .btn-send-live { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; border-radius: 12px; padding: 10px 20px; cursor: pointer; font-weight: 600; transition: all 0.2s; white-space: nowrap; }
-        .btn-send-live:hover { opacity: 0.9; transform: scale(1.02); }
-        .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #475569; gap: 12px; }
-        .handoff-badge { background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 600; }
-        .bot-badge { background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 600; }
+        .livechat-card {
+            height: calc(100vh - 150px);
+            min-height: 500px;
+            display: flex;
+            overflow: hidden;
+            border-radius: 16px;
+        }
+
+        /* --- Contacts Panel --- */
+        .lc-contacts {
+            width: 300px;
+            min-width: 260px;
+            flex-shrink: 0;
+            background: rgba(15, 23, 42, 0.6);
+            border-left: 1px solid rgba(255,255,255,0.07);
+            display: flex;
+            flex-direction: column;
+        }
+        .lc-contacts-header {
+            padding: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .lc-search {
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .lc-search input {
+            width: 100%;
+            background: rgba(30,41,59,0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+        .lc-search input:focus { outline: none; border-color: #6366f1; }
+        .lc-contacts-list { flex: 1; overflow-y: auto; }
+        .lc-contact {
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .lc-contact:hover { background: rgba(99,102,241,0.08); }
+        .lc-contact.active { background: rgba(99,102,241,0.18); border-right: 3px solid #6366f1; }
+
+        .lc-avatar {
+            width: 42px; height: 42px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 16px; color: white;
+            flex-shrink: 0; position: relative;
+        }
+        .handoff-dot {
+            position: absolute; top: 0; right: 0;
+            width: 12px; height: 12px;
+            border-radius: 50%; background: #f59e0b;
+            border: 2px solid #0f172a;
+        }
+        .lc-contact-info { flex: 1; overflow: hidden; }
+        .lc-contact-name { font-size: 13px; font-weight: 600; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .lc-contact-preview { font-size: 12px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+        .lc-contact-meta { flex-shrink: 0; text-align: left; }
+        .lc-time { font-size: 10px; color: #475569; }
+        .unread-pill {
+            background: #6366f1; color: white;
+            border-radius: 10px; padding: 1px 6px;
+            font-size: 11px; font-weight: 700;
+            margin-top: 3px; display: inline-block;
+        }
+
+        /* --- Chat Panel --- */
+        .lc-chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0b1120;
+            min-width: 0;
+        }
+        .lc-chat-header {
+            padding: 12px 18px;
+            background: rgba(15,23,42,0.8);
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            display: flex; align-items: center; justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .lc-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .lc-bubble {
+            max-width: 70%;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 13px;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+        .lc-bubble-in { background: #1e293b; color: #cbd5e1; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .lc-bubble-out { background: linear-gradient(135deg, #4f46e5, #6366f1); color: white; align-self: flex-start; border-bottom-left-radius: 4px; }
+        .lc-bubble-time { font-size: 10px; opacity: 0.55; margin-top: 4px; }
+        .lc-input-area {
+            padding: 12px 16px;
+            background: rgba(15,23,42,0.8);
+            border-top: 1px solid rgba(255,255,255,0.07);
+            display: flex; gap: 10px; align-items: flex-end;
+            flex-shrink: 0;
+        }
+        .lc-input-area textarea {
+            flex: 1;
+            background: #1e293b;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            border-radius: 12px;
+            padding: 10px 14px;
+            resize: none;
+            font-size: 13px;
+            min-height: 42px;
+            max-height: 120px;
+        }
+        .lc-input-area textarea:focus { outline: none; border-color: #6366f1; }
+        .btn-lc-send {
+            background: linear-gradient(135deg, #4f46e5, #6366f1);
+            color: white; border: none; border-radius: 12px;
+            padding: 10px 18px; cursor: pointer;
+            font-weight: 600; font-size: 13px;
+            transition: opacity 0.2s;
+        }
+        .btn-lc-send:hover { opacity: 0.9; }
+        .lc-empty {
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 12px;
+            color: #334155;
+        }
+
+        .badge-handoff { background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); border-radius: 8px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+        .badge-bot { background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); border-radius: 8px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+
+        /* Mobile */
         @media (max-width: 768px) {
-            .livechat-wrapper { flex-direction: column; height: auto; }
-            .contacts-panel { width: 100%; height: 200px; }
+            .lc-contacts { width: 100%; min-width: unset; border-left: none; border-bottom: 1px solid rgba(255,255,255,0.07); max-height: 220px; }
+            .livechat-card { flex-direction: column; height: auto; min-height: calc(100vh - 130px); }
         }
     </style>
 </head>
 <body>
-<%- include('partials/navbar') %>
-<%- include('partials/sidebar', { handoffCount: conversations.filter(c=>c.is_handoff).length }) %>
+    <%- include('partials/navbar') %>
+    <%- include('partials/sidebar', { handoffCount: conversations.filter(c=>c.is_handoff).length }) %>
 
-<div class="container-fluid main-content px-3 px-lg-4 pb-4">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-        <h2 class="fw-bold text-white m-0"><i class="bi bi-chat-dots-fill text-primary me-2"></i>Live Chat</h2>
-        <div class="d-flex gap-2 align-items-center">
-            <span class="badge bg-warning text-dark"><%= conversations.filter(c=>c.is_handoff).length %> بانتظار الرد</span>
-            <span class="badge bg-secondary"><%= conversations.length %> محادثة</span>
-        </div>
-    </div>
-
-    <div class="livechat-wrapper glass-card p-0">
-        <!-- Contacts Panel -->
-        <div class="contacts-panel">
-            <div class="contacts-header">
-                <span class="fw-bold text-white fs-6">المحادثات</span>
+    <div class="container-fluid main-content px-4 px-lg-5">
+        <!-- Page Title -->
+        <div class="d-flex align-items-center justify-content-between mb-3 animate-fade-in">
+            <div>
+                <h4 class="fw-bold text-white m-0"><i class="bi bi-chat-dots-fill me-2" style="color:#6366f1;"></i>Live Chat</h4>
+                <p class="text-white-50 small m-0">ردّ مباشرة على عملائك وتحكّم في البوت</p>
             </div>
-            <div class="px-3 pt-2 pb-2 contacts-search">
-                <input type="text" id="searchContacts" placeholder="🔍 ابحث عن محادثة...">
-            </div>
-            <div class="contacts-list" id="contactsList">
-                <% if (conversations.length === 0) { %>
-                <div class="text-center text-muted p-4" style="font-size:13px;">
-                    <i class="bi bi-chat-square-dots" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.4;"></i>
-                    لا توجد محادثات بعد.<br>ستظهر هنا فور وصول أول رسالة.
-                </div>
-                <% } %>
-                <% conversations.forEach(conv => { %>
-                <div class="contact-item" 
-                     data-jid="<%= conv.remoteJid %>" 
-                     data-handoff="<%= conv.is_handoff %>"
-                     onclick="loadChat('<%= conv.remoteJid %>', '<%= (conv.customerName || conv.remoteJid.split('@')[0]).replace(/'/g, '') %>', <%= conv.is_handoff %>)">
-                    <div class="contact-avatar">
-                        <%= (conv.customerName || conv.remoteJid.split('@')[0])[0].toUpperCase() %>
-                        <% if (conv.is_handoff) { %><div class="handoff-dot"></div><% } %>
-                    </div>
-                    <div class="contact-info">
-                        <div class="contact-name"><%= conv.customerName || conv.remoteJid.split('@')[0] %></div>
-                        <div class="contact-preview"><%= conv.lastMessageText || '...' %></div>
-                    </div>
-                    <div class="contact-meta">
-                        <div class="contact-time"><%= new Date(conv.lastMessageAt).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'}) %></div>
-                        <% if (conv.unreadCount > 0) { %>
-                        <div class="unread-badge"><%= conv.unreadCount %></div>
-                        <% } %>
-                    </div>
-                </div>
-                <% }) %>
+            <div class="d-flex gap-2">
+                <span class="badge rounded-pill" style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);font-size:12px;">
+                    <i class="bi bi-person-fill me-1"></i><%= conversations.filter(c=>c.is_handoff).length %> تحويل نشط
+                </span>
+                <span class="badge rounded-pill" style="background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.3);font-size:12px;">
+                    <i class="bi bi-chat-fill me-1"></i><%= conversations.length %> محادثة
+                </span>
             </div>
         </div>
 
-        <!-- Chat Area -->
-        <div class="chat-area" id="chatArea">
-            <div class="empty-state" id="emptyState">
-                <i class="bi bi-chat-left-dots" style="font-size: 3rem; opacity:0.3;"></i>
-                <p style="font-size:14px;">اختر محادثة من القائمة للبدء</p>
-            </div>
-            
-            <!-- Active Chat (hidden by default) -->
-            <div id="activeChatView" style="display:none; flex-direction:column; height:100%;">
-                <div class="chat-header-bar">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="contact-avatar" id="chatAvatar" style="width:40px;height:40px;font-size:16px;">?</div>
-                        <div>
-                            <div class="fw-bold text-white" id="chatName">-</div>
-                            <div class="text-muted" style="font-size:12px;" id="chatJidDisplay">-</div>
+        <!-- Main Chat Card -->
+        <div class="glass-card p-0 animate-fade-in livechat-card">
+
+            <!-- Contacts Panel -->
+            <div class="lc-contacts">
+                <div class="lc-contacts-header">
+                    <span class="fw-bold text-white" style="font-size:14px;">المحادثات</span>
+                </div>
+                <div class="lc-search">
+                    <input type="text" id="lcSearch" placeholder="🔍 ابحث...">
+                </div>
+                <div class="lc-contacts-list" id="lcContactsList">
+                    <% if (conversations.length === 0) { %>
+                    <div class="text-center p-4" style="color:#475569; font-size:13px;">
+                        <i class="bi bi-chat-square-dots" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                        لا توجد محادثات بعد.<br>ستظهر هنا فور وصول أول رسالة.
+                    </div>
+                    <% } %>
+                    <% conversations.forEach(conv => {
+                        const displayName = conv.customerName || conv.remoteJid.split('@')[0];
+                        const timeStr = new Date(conv.lastMessageAt).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'});
+                    %>
+                    <div class="lc-contact"
+                         data-jid="<%= conv.remoteJid %>"
+                         data-handoff="<%= conv.is_handoff %>"
+                         data-name="<%= displayName.replace(/"/g, '') %>"
+                         onclick="loadChat('<%= conv.remoteJid %>', '<%= displayName.replace(/'/g,'') %>', <%= conv.is_handoff %>)">
+                        <div class="lc-avatar">
+                            <%= displayName[0].toUpperCase() %>
+                            <% if (conv.is_handoff) { %><div class="handoff-dot"></div><% } %>
+                        </div>
+                        <div class="lc-contact-info">
+                            <div class="lc-contact-name"><%= displayName %></div>
+                            <div class="lc-contact-preview"><%= conv.lastMessageText || '...' %></div>
+                        </div>
+                        <div class="lc-contact-meta">
+                            <div class="lc-time"><%= timeStr %></div>
+                            <% if (conv.unreadCount > 0) { %>
+                            <span class="unread-pill"><%= conv.unreadCount %></span>
+                            <% } %>
                         </div>
                     </div>
-                    <div class="d-flex gap-2 align-items-center">
-                        <span id="handoffStatusBadge" class="bot-badge">🤖 البوت يرد</span>
-                        <button class="btn btn-sm" id="btnToggleHandoff" onclick="toggleHandoff()" title="تبديل الوضع">
-                            <i class="bi bi-person-fill-gear"></i> خذ التحكم
-                        </button>
-                    </div>
-                </div>
-
-                <div class="chat-messages-area" id="chatMessages"></div>
-
-                <div class="chat-input-bar">
-                    <textarea id="liveInput" placeholder="اكتب ردك هنا... (Shift+Enter لسطر جديد)" rows="1"></textarea>
-                    <button class="btn-send-live" onclick="sendLiveMessage()"><i class="bi bi-send-fill"></i> إرسال</button>
+                    <% }) %>
                 </div>
             </div>
+
+            <!-- Chat Panel -->
+            <div class="lc-chat">
+                <!-- Empty State -->
+                <div class="lc-empty" id="lcEmpty">
+                    <i class="bi bi-chat-left-dots" style="font-size:3.5rem;opacity:0.2;"></i>
+                    <p style="font-size:14px;">اختر محادثة من القائمة للبدء</p>
+                </div>
+
+                <!-- Active Chat -->
+                <div id="lcActiveChat" style="display:none; flex-direction:column; height:100%;">
+                    <div class="lc-chat-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="lc-avatar" id="lcHeaderAvatar" style="width:38px;height:38px;font-size:15px;">?</div>
+                            <div>
+                                <div class="fw-bold text-white" style="font-size:14px;" id="lcHeaderName">-</div>
+                                <div style="font-size:11px;color:#64748b;" id="lcHeaderJid">-</div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span id="lcStatusBadge" class="badge-bot">🤖 البوت يرد</span>
+                            <button class="btn btn-sm btn-warning fw-semibold" id="lcToggleBtn" onclick="toggleHandoff()" style="font-size:12px;">
+                                <i class="bi bi-person-fill-gear me-1"></i>خذ التحكم
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="lc-messages" id="lcMessages"></div>
+
+                    <div class="lc-input-area">
+                        <textarea id="lcInput" placeholder="اكتب ردك هنا... (Enter للإرسال، Shift+Enter لسطر جديد)" rows="1"></textarea>
+                        <button class="btn-lc-send" onclick="sendLcMsg()"><i class="bi bi-send-fill"></i></button>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-let currentJid = null;
-let currentHandoff = false;
-const socket = io();
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+    let currentJid = null;
+    let currentHandoff = false;
+    const socket = io();
 
-// Search contacts
-document.getElementById('searchContacts').addEventListener('input', function() {
-    const q = this.value.toLowerCase();
-    document.querySelectorAll('.contact-item').forEach(item => {
-        const name = item.querySelector('.contact-name').textContent.toLowerCase();
-        const preview = item.querySelector('.contact-preview').textContent.toLowerCase();
-        item.style.display = (name.includes(q) || preview.includes(q)) ? '' : 'none';
+    socket.on('connect', () => socket.emit('join_room', 'user_<%= user.id %>'));
+    socket.on('new_message', (msg) => {
+        // Update contact preview
+        const item = document.querySelector(`.lc-contact[data-jid="${msg.remoteJid}"]`);
+        if (item) item.querySelector('.lc-contact-preview').textContent = msg.content;
+        // Append to chat if open
+        if (msg.remoteJid === currentJid && msg.role === 'user') {
+            appendBubble(msg.content, true, new Date(msg.createdAt));
+        }
     });
-});
 
-async function loadChat(jid, name, isHandoff) {
-    currentJid = jid;
-    currentHandoff = isHandoff;
-
-    // Update UI
-    document.querySelectorAll('.contact-item').forEach(i => {
-        i.classList.toggle('active', i.dataset.jid === jid);
+    // Search
+    document.getElementById('lcSearch').addEventListener('input', function() {
+        const q = this.value.toLowerCase();
+        document.querySelectorAll('.lc-contact').forEach(el => {
+            const n = el.dataset.name.toLowerCase();
+            el.style.display = n.includes(q) ? '' : 'none';
+        });
     });
-    document.getElementById('emptyState').style.display = 'none';
-    const view = document.getElementById('activeChatView');
-    view.style.display = 'flex';
-    document.getElementById('chatName').textContent = name;
-    document.getElementById('chatAvatar').textContent = name[0]?.toUpperCase() || '?';
-    document.getElementById('chatJidDisplay').textContent = jid;
-    updateHandoffUI(isHandoff);
 
-    // Load messages
-    const res = await fetch(`/dashboard/livechat/${encodeURIComponent(jid)}/messages`);
-    const data = await res.json();
-    const container = document.getElementById('chatMessages');
-    container.innerHTML = '';
-    if (data.messages) {
-        data.messages.forEach(m => appendMessage(m.content, m.role === 'user', new Date(m.createdAt)));
+    async function loadChat(jid, name, isHandoff) {
+        currentJid = jid;
+        currentHandoff = isHandoff;
+
+        document.querySelectorAll('.lc-contact').forEach(el => el.classList.toggle('active', el.dataset.jid === jid));
+        document.getElementById('lcEmpty').style.display = 'none';
+        const view = document.getElementById('lcActiveChat');
+        view.style.display = 'flex';
+        document.getElementById('lcHeaderAvatar').textContent = name[0]?.toUpperCase() || '?';
+        document.getElementById('lcHeaderName').textContent = name;
+        document.getElementById('lcHeaderJid').textContent = jid;
+        updateHandoffUI(isHandoff);
+
+        // Load messages
+        const res = await fetch(`/dashboard/livechat/${encodeURIComponent(jid)}/messages`);
+        const data = await res.json();
+        const box = document.getElementById('lcMessages');
+        box.innerHTML = '';
+        if (data.messages) data.messages.forEach(m => appendBubble(m.content, m.role === 'user', new Date(m.createdAt)));
+        box.scrollTop = box.scrollHeight;
+
+        // Clear unread
+        const item = document.querySelector(`.lc-contact[data-jid="${jid}"]`);
+        if (item) { const u = item.querySelector('.unread-pill'); if(u) u.remove(); }
     }
-    container.scrollTop = container.scrollHeight;
 
-    // Remove unread from contact
-    const item = document.querySelector(`.contact-item[data-jid="${jid}"]`);
-    if (item) { const badge = item.querySelector('.unread-badge'); if(badge) badge.remove(); }
-}
+    function appendBubble(text, isIncoming, date) {
+        const box = document.getElementById('lcMessages');
+        const div = document.createElement('div');
+        div.className = `lc-bubble ${isIncoming ? 'lc-bubble-in' : 'lc-bubble-out'}`;
+        const t = date ? date.toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'}) : '';
+        div.innerHTML = `${text.replace(/\n/g,'<br>')}<div class="lc-bubble-time">${t}</div>`;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+    }
 
-function appendMessage(text, isIncoming, date) {
-    const container = document.getElementById('chatMessages');
-    const div = document.createElement('div');
-    const timeStr = date ? date.toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'}) : '';
-    div.className = `msg-bubble ${isIncoming ? 'msg-in' : 'msg-out'}`;
-    div.innerHTML = `${text.replace(/\n/g,'<br>')}<div class="msg-time">${timeStr}</div>`;
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
-}
+    async function sendLcMsg() {
+        const input = document.getElementById('lcInput');
+        const text = input.value.trim();
+        if (!text || !currentJid) return;
+        input.value = '';
+        input.style.height = 'auto';
+        appendBubble(text, false, new Date());
 
-async function sendLiveMessage() {
-    const input = document.getElementById('liveInput');
-    const text = input.value.trim();
-    if (!text || !currentJid) return;
-    input.value = '';
-    input.style.height = 'auto';
+        const res = await fetch('/dashboard/livechat/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ remoteJid: currentJid, text })
+        });
+        const data = await res.json();
+        if (!data.success) alert('فشل إرسال الرسالة: ' + (data.error || 'خطأ'));
+    }
 
-    appendMessage(text, false, new Date());
-
-    const res = await fetch('/dashboard/livechat/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ remoteJid: currentJid, text })
-    });
-    const data = await res.json();
-    if (!data.success) alert('فشل إرسال الرسالة: ' + (data.error || 'خطأ'));
-}
-
-async function toggleHandoff() {
-    if (!currentJid) return;
-    const newVal = !currentHandoff;
-    const res = await fetch('/dashboard/livechat/handoff', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ remoteJid: currentJid, enable: newVal })
-    });
-    const data = await res.json();
-    if (data.success) {
-        currentHandoff = newVal;
-        updateHandoffUI(newVal);
-        // Update contact dot
-        const item = document.querySelector(`.contact-item[data-jid="${currentJid}"]`);
-        if (item) {
-            item.dataset.handoff = newVal;
-            const dot = item.querySelector('.handoff-dot');
-            if (newVal && !dot) {
-                const av = item.querySelector('.contact-avatar');
-                const d = document.createElement('div'); d.className = 'handoff-dot'; av.appendChild(d);
-            } else if (!newVal && dot) { dot.remove(); }
+    async function toggleHandoff() {
+        if (!currentJid) return;
+        const newVal = !currentHandoff;
+        const res = await fetch('/dashboard/livechat/handoff', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ remoteJid: currentJid, enable: newVal })
+        });
+        const data = await res.json();
+        if (data.success) {
+            currentHandoff = newVal;
+            updateHandoffUI(newVal);
+            const item = document.querySelector(`.lc-contact[data-jid="${currentJid}"]`);
+            if (item) {
+                item.dataset.handoff = newVal;
+                let dot = item.querySelector('.handoff-dot');
+                if (newVal && !dot) { dot = document.createElement('div'); dot.className = 'handoff-dot'; item.querySelector('.lc-avatar').appendChild(dot); }
+                else if (!newVal && dot) dot.remove();
+            }
         }
     }
-}
 
-function updateHandoffUI(isHandoff) {
-    const badge = document.getElementById('handoffStatusBadge');
-    const btn = document.getElementById('btnToggleHandoff');
-    if (isHandoff) {
-        badge.className = 'handoff-badge'; badge.textContent = '👤 أنت تتحكم';
-        btn.className = 'btn btn-sm btn-success'; btn.innerHTML = '<i class="bi bi-robot"></i> إرجاع للبوت';
-    } else {
-        badge.className = 'bot-badge'; badge.textContent = '🤖 البوت يرد';
-        btn.className = 'btn btn-sm btn-warning'; btn.innerHTML = '<i class="bi bi-person-fill-gear"></i> خذ التحكم';
+    function updateHandoffUI(isHandoff) {
+        const badge = document.getElementById('lcStatusBadge');
+        const btn   = document.getElementById('lcToggleBtn');
+        if (isHandoff) {
+            badge.className = 'badge-handoff'; badge.textContent = '👤 أنت تتحكم';
+            btn.className   = 'btn btn-sm btn-success fw-semibold'; btn.style.fontSize = '12px';
+            btn.innerHTML   = '<i class="bi bi-robot me-1"></i>إرجاع للبوت';
+        } else {
+            badge.className = 'badge-bot'; badge.textContent = '🤖 البوت يرد';
+            btn.className   = 'btn btn-sm btn-warning fw-semibold'; btn.style.fontSize = '12px';
+            btn.innerHTML   = '<i class="bi bi-person-fill-gear me-1"></i>خذ التحكم';
+        }
     }
-}
 
-// Auto-resize textarea
-document.getElementById('liveInput').addEventListener('input', function() {
-    this.style.height = 'auto';
-    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-});
-document.getElementById('liveInput').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendLiveMessage(); }
-});
-
-// Socket.io real-time
-socket.on('connect', () => {
-    socket.emit('join_room', `user_<%= user.id %>`);
-});
-socket.on('new_message', (msg) => {
-    if (msg.remoteJid === currentJid && msg.role === 'user') {
-        appendMessage(msg.content, true, new Date(msg.createdAt));
-    }
-    // Update contact preview
-    const item = document.querySelector(`.contact-item[data-jid="${msg.remoteJid}"]`);
-    if (item) {
-        const preview = item.querySelector('.contact-preview');
-        if (preview) preview.textContent = msg.content;
-    }
-});
-</script>
-<script src="/socket.io/socket.io.js"></script>
+    // Auto resize textarea
+    const lcInput = document.getElementById('lcInput');
+    lcInput.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = Math.min(this.scrollHeight, 120) + 'px'; });
+    lcInput.addEventListener('keydown', function(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendLcMsg(); } });
+    </script>
 </body>
 </html>
