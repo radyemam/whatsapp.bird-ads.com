@@ -1,6 +1,6 @@
 import express from 'express';
 import session from 'express-session';
-import { restoreSessions, checkSubscriptionExpiry, checkPauseTimer } from './controllers/botController.js';
+import { restoreSessions, checkSubscriptionExpiry, checkPauseTimer, checkInactivitySummary } from './controllers/botController.js';
 // ... (imports)
 
 // ... (code)
@@ -22,6 +22,8 @@ import sequelize from './config/database.js';
 import passportConfig from './config/passport.js';
 import User from './models/User.js';
 import Message from './models/Message.js';
+import Conversation from './models/Conversation.js';
+import Campaign from './models/Campaign.js';
 import Instruction from './models/Instruction.js';
 import MessengerPage from './models/MessengerPage.js';
 import MessengerConversation from './models/MessengerConversation.js';
@@ -181,6 +183,11 @@ sequelize.sync().then(async () => {
         // Schedule Checks every 1 minute (Pause Timer)
         setInterval(() => {
             checkPauseTimer(io);
+        }, 60 * 1000);
+
+        // Schedule Inactivity Summary every 1 minute
+        setInterval(() => {
+            checkInactivitySummary();
         }, 60 * 1000);
     });
 }).catch(err => {

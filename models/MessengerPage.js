@@ -24,6 +24,23 @@ const MessengerPage = sequelize.define('MessengerPage', {
         type: DataTypes.TEXT,
         allowNull: false
     },
+    defaultComment: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: 'أهلاً وسهلاً بحضرتك \nتم إرسال التفاصيل لك في الرسائل الخاصة ✅'
+    },
+    // وضع الرد: 'ai' = ذكاء اصطناعي, 'fixed' = رد ثابت
+    replyMode: {
+        type: DataTypes.ENUM('ai', 'fixed'),
+        defaultValue: 'ai',
+        allowNull: false
+    },
+    // الرد الثابت اللي بيتبعت بدل الـ AI
+    fixedReply: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        defaultValue: null
+    },
     isActive: {
         type: DataTypes.BOOLEAN,
         defaultValue: true

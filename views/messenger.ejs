@@ -98,7 +98,10 @@
 
                 <!-- Pages List -->
                 <div class="glass-card p-4">
-                    <h6 class="fw-bold text-white mb-3">📑 الصفحات المربوطة</h6>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold text-white mb-0">📑 الصفحات المربوطة</h6>
+                        <button class="btn btn-sm btn-outline-danger" onclick="disconnectAllPages()">إلغاء ربط الكل</button>
+                    </div>
                     <div id="pages-list">
                         <div class="text-center text-white-50 py-3">
                             <div class="spinner-border spinner-border-sm mb-2"></div>
@@ -143,8 +146,51 @@
         </div>
     </div>
 
+    <!-- Edit Comment Modal -->
+    <div class="modal fade" id="editCommentModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-card border-secondary">
+                <div class="modal-header border-secondary border-opacity-25">
+                    <h5 class="modal-title text-white">✏️ تعديل الرد التلقائي</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-white-50 small mb-2">هذا هو الرد الذي سيتم إرساله كتعليق للعملاء. يمكنك استخدام <code>{name}</code> لذكر اسم العميل.</p>
+                    <textarea id="edit-comment-text" class="form-control bg-dark text-white border-secondary" rows="4"></textarea>
+                    <input type="hidden" id="edit-comment-pageId">
+                </div>
+                <div class="modal-footer border-secondary border-opacity-25">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" onclick="savePageComment()">حفظ التعديلات</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div id="toast-container"></div>
+
+    <!-- Fixed Reply Modal -->
+    <div class="modal fade" id="fixedReplyModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-card border-secondary">
+                <div class="modal-header border-secondary border-opacity-25">
+                    <h5 class="modal-title text-white">📌 الرد الثابت</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-warning small mb-2">⚠️ عند تفعيل هذا الوضع، البوت سيرد بهذه الرسالة مرة واحدة فقط لكل عميل جديد، والذكاء الاصطناعي سيتوقف.</p>
+                    <p class="text-white-50 small mb-2">يمكنك استخدام <code>{name}</code> لذكر اسم العميل.</p>
+                    <textarea id="fixed-reply-text" class="form-control bg-dark text-white border-secondary" rows="5" placeholder="مثال: أهلاً {name}! شكراً لتواصلك معنا، سيقوم فريقنا بالرد عليك خلال دقائق ✅"></textarea>
+                </div>
+                <div class="modal-footer border-secondary border-opacity-25">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-warning text-dark fw-bold" onclick="saveFixedReply()">📌 تفعيل الرد الثابت</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -205,19 +251,65 @@
             filter.innerHTML = '<option value="">-- اختر صفحة --</option>' +
                 data.pages.map(p => `<option value="${p.pageId}">${p.pageName}</option>`).join('');
 
-            list.innerHTML = data.pages.map(page => `
-                <div class="page-card p-3 mb-2 d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="fw-bold text-white">${page.pageName}</div>
-                        <code class="text-white-50 small" dir="ltr">${page.pageId}</code>
+            list.innerHTML = data.pages.map(page => {
+                const commentText = page.defaultComment || 'أهلاً وسهلاً بحضرتك 😊\nتم إرسال التفاصيل لك في الرسائل الخاصة ✅';
+                const safeComment = encodeURIComponent(commentText);
+                const isFixed = page.replyMode === 'fixed';
+                const fixedReplyText = page.fixedReply || '';
+                const safeFixed = encodeURIComponent(fixedReplyText);
+                return `
+                <div class="page-card p-3 mb-3 d-flex flex-column gap-2">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="fw-bold text-white">${page.pageName}</div>
+                            <code class="text-white-50 small" dir="ltr">${page.pageId}</code>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge ${page.isActive ? 'bg-success' : 'bg-secondary'}">${page.isActive ? 'نشطة' : 'غير نشطة'}</span>
+                            <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="disconnectPage('${page.pageId}')">حذف</button>
+                        </div>
                     </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="badge ${page.isActive ? 'bg-success' : 'bg-secondary'}">${page.isActive ? 'نشطة' : 'غير نشطة'}</span>
-                        <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="disconnectPage('${page.pageId}')">حذف</button>
+
+                    <!-- نظام الرد -->
+                    <div class="p-2 rounded" style="background: rgba(8,102,255,0.1); border: 1px solid rgba(8,102,255,0.3);">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-white small fw-bold">🤖 نظام الرد</span>
+                            <div class="d-flex gap-1">
+                                <button onclick="setReplyMode('${page.pageId}', 'ai', '${safeFixed}')"
+                                    class="btn btn-xs px-2 py-1 ${!isFixed ? 'btn-primary' : 'btn-outline-secondary'}"
+                                    style="font-size:0.75rem;border-radius:8px;">
+                                    🤖 ذكاء اصطناعي
+                                </button>
+                                <button onclick="setReplyMode('${page.pageId}', 'fixed', '${safeFixed}')"
+                                    class="btn btn-xs px-2 py-1 ${isFixed ? 'btn-warning text-dark' : 'btn-outline-secondary'}"
+                                    style="font-size:0.75rem;border-radius:8px;">
+                                    📌 رد ثابت
+                                </button>
+                            </div>
+                        </div>
+                        ${ isFixed ? `
+                        <div class="mt-1 p-2 rounded" style="background:rgba(255,193,7,0.1);border:1px dashed rgba(255,193,7,0.4);">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="text-warning small">📌 الرد الثابت الحالي:</span>
+                                <button class="btn btn-sm btn-link text-info p-0" onclick="openFixedReplyModal('${page.pageId}', '${safeFixed}')">تعديل ✏️</button>
+                            </div>
+                            <div class="text-white-50 small" style="white-space:pre-wrap;">${fixedReplyText || 'لم يتم تحديد رد ثابت بعد'}</div>
+                        </div>` : `<div class="text-white-50 small">ℹ️ البوت يرد تلقائياً بالذكاء الاصطناعي</div>` }
+                    </div>
+
+                    <!-- رد الكومنتات -->
+                    <div class="p-2 rounded" style="background: rgba(0,0,0,0.3); border: 1px dashed rgba(255,255,255,0.1);">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-white-50 small">💬 رد الكومنتات:</span>
+                            <button class="btn btn-sm btn-link text-info p-0 text-decoration-none" onclick="openEditComment('${page.pageId}', '${safeComment}')">تعديل ✏️</button>
+                        </div>
+                        <div class="text-white small" style="white-space: pre-wrap;">${commentText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
+
 
         // ======= Connect Page =======
         document.getElementById('connect-form').addEventListener('submit', async (e) => {
@@ -257,6 +349,42 @@
             const res = await fetch(`/api/messenger/page/${pageId}`, { method: 'DELETE' });
             const data = await res.json();
             if (data.success) { showToast('تم إلغاء ربط الصفحة'); loadPages(); }
+        }
+
+        // ======= Disconnect All Pages =======
+        async function disconnectAllPages() {
+            if (!confirm('هل أنت متأكد من إلغاء ربط كل الصفحات؟ لن يتم الرد على أي تعليقات أو رسائل بعدها.')) return;
+            const res = await fetch(`/api/messenger/pages`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) { showToast('تم إلغاء ربط كل الصفحات'); loadPages(); }
+        }
+
+        // ======= Edit Comment =======
+        const editCommentModal = new bootstrap.Modal(document.getElementById('editCommentModal'));
+        function openEditComment(pageId, safeComment) {
+            document.getElementById('edit-comment-pageId').value = pageId;
+            document.getElementById('edit-comment-text').value = decodeURIComponent(safeComment);
+            editCommentModal.show();
+        }
+
+        async function savePageComment() {
+            const pageId = document.getElementById('edit-comment-pageId').value;
+            const defaultComment = document.getElementById('edit-comment-text').value.trim();
+            if (!defaultComment) return showToast('لا يمكن ترك الرد فارغاً', 'danger');
+
+            const res = await fetch(`/api/messenger/page/${pageId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ defaultComment })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast('تم تحديث الرد التلقائي');
+                editCommentModal.hide();
+                loadPages();
+            } else {
+                showToast('حدث خطأ أثناء التحديث', 'danger');
+            }
         }
 
         // ======= Load Conversations =======
@@ -314,6 +442,46 @@
 
         // Init
         loadPages();
+
+        // ====== Fixed Reply Modal ======
+        let currentFixedPageId = null;
+        const fixedReplyModal = new bootstrap.Modal(document.getElementById('fixedReplyModal'));
+        
+        function openFixedReplyModal(pageId, safeFixed) {
+            currentFixedPageId = pageId;
+            document.getElementById('fixed-reply-text').value = decodeURIComponent(safeFixed);
+            fixedReplyModal.show();
+        }
+
+        async function saveFixedReply() {
+            const fixedReply = document.getElementById('fixed-reply-text').value.trim();
+            if (!fixedReply) return showToast('يجب كتابة الرد الثابت', 'danger');
+            const res = await fetch(`/api/messenger/page/${currentFixedPageId}/settings`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ replyMode: 'fixed', fixedReply })
+            });
+            const data = await res.json();
+            if (data.success) { showToast(data.message); fixedReplyModal.hide(); loadPages(); }
+            else showToast(data.message, 'danger');
+        }
+
+        async function setReplyMode(pageId, mode, safeFixed) {
+            if (mode === 'fixed') {
+                // افتح المودال عشان يدخل الرد الثابت
+                openFixedReplyModal(pageId, safeFixed);
+                return;
+            }
+            // Mode = ai: حوّل مباشرة
+            const res = await fetch(`/api/messenger/page/${pageId}/settings`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ replyMode: 'ai', fixedReply: decodeURIComponent(safeFixed) })
+            });
+            const data = await res.json();
+            if (data.success) { showToast(data.message); loadPages(); }
+            else showToast(data.message, 'danger');
+        }
     </script>
 </body>
 </html>

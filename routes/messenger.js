@@ -8,65 +8,62 @@ import {
     getConversations,
     getSummary,
     startFacebookAuth,
-    handleFacebookCallback
+    handleFacebookCallback,
+    updatePageComment,
+    updatePageSettings,
+    disconnectAllPages
 } from '../controllers/messengerController.js';
 
 const router = express.Router();
 
-// ====== Webhook اللي بتتصل بيه ميتا ======
-// GET: التحقق من الـ webhook (ميتا بتبعت طلب GET أول مرة)
+// ====== Webhook ======
 router.get('/webhook/messenger', verifyWebhook);
-
-// POST: استقبال الرسائل الجديدة
 router.post('/webhook/messenger', handleWebhook);
 
-// ====== صفحة إدارة الماسنجر في الداشبورد ======
+// ====== Dashboard Page ======
 router.get('/dashboard/messenger', (req, res) => {
     if (!req.isAuthenticated()) return res.redirect('/login');
-    res.render('messenger', {
-        user: req.user,
-        page: 'messenger'
-    });
+    res.render('messenger', { user: req.user, page: 'messenger' });
 });
 
-// ====== Facebook OAuth Routes ======
-// بدء عملية الـ Login بفيسبوك
+// ====== Facebook OAuth ======
 router.get('/auth/facebook/messenger', (req, res) => {
     if (!req.isAuthenticated()) return res.redirect('/login');
     return startFacebookAuth(req, res);
 });
+router.get('/auth/facebook/messenger/callback', (req, res) => handleFacebookCallback(req, res));
 
-// Callback بعد موافقة اليوزر على فيسبوك
-router.get('/auth/facebook/messenger/callback', (req, res) => {
-    return handleFacebookCallback(req, res);
-});
-
-// ====== API Routes للواجهة ======
-// جلب الصفحات المربوطة
+// ====== API Routes ======
 router.get('/api/messenger/pages', (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ success: false });
     return getPages(req, res);
 });
-
-// ربط صفحة جديدة
 router.post('/api/messenger/connect', (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ success: false });
     return connectPage(req, res);
 });
-
-// حذف ربط صفحة
 router.delete('/api/messenger/page/:pageId', (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ success: false });
     return disconnectPage(req, res);
 });
-
-// جلب المحادثات لصفحة معينة
+// تحديث رد الكومنت
+router.put('/api/messenger/page/:pageId', (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ success: false });
+    return updatePageComment(req, res);
+});
+// تحديث إعدادات النظام (replyMode + fixedReply)
+router.patch('/api/messenger/page/:pageId/settings', (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ success: false });
+    return updatePageSettings(req, res);
+});
+router.delete('/api/messenger/pages', (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ success: false });
+    return disconnectAllPages(req, res);
+});
 router.get('/api/messenger/conversations/:pageId', (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ success: false });
     return getConversations(req, res);
 });
-
-// عمل ملخص لمحادثة
 router.get('/api/messenger/summary/:conversationId', (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ success: false });
     return getSummary(req, res);
