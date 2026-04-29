@@ -154,18 +154,15 @@ async function handleCommentEvent(pageId, commentData) {
         if (page.fixedReply && commenterId) {
             const fixedMsg = page.fixedReply.replace('{name}', firstName);
             try {
-                // تحقق: هل ابعتنا رد ثابت قبل كده لنفس العميل؟
+                // تحديث أو إنشاء المحادثة
                 const [conv, wasCreated] = await (await import('../models/MessengerConversation.js')).default.findOrCreate({
                     where: { pageId, senderId: commenterId },
                     defaults: { UserId: page.UserId, pageId, senderId: commenterId, messageCount: 0, is_handoff: false }
                 });
-                if (wasCreated) {
-                    // أول مرة → ابعت الرد الثابت
-                    await sendMessengerReply(commenterId, fixedMsg, accessToken);
-                    console.log(`✅ [Fixed Reply] Sent fixed reply to ${commenterId} (first time via comment)`);
-                } else {
-                    console.log(`⏸️ [Fixed Reply] Already replied to ${commenterId}, skipping.`);
-                }
+
+                // إرسال الرد الثابت دائماً مع أي كومنت جديد
+                await sendPrivateReplyToComment(commentId, fixedMsg, accessToken);
+                console.log(`✅ [Fixed Reply] Sent fixed reply to ${commenterId} (via comment)`);
             } catch (err) {
                 console.error('[Fixed Reply Comment] Error:', err);
             }
@@ -176,7 +173,7 @@ async function handleCommentEvent(pageId, commentData) {
     // وضع AI: ابعت الرد بالذكاء الاصطناعي
     if (commentText.trim().length > 0) {
         try {
-            await processMessengerMessage(pageId, commenterId, commentText);
+            await processMessengerMessage(pageId, commenterId, commentText, commentId);
         } catch (err) {
             console.error('[Messenger Comment] Error processing AI reply:', err);
         }
@@ -227,7 +224,7 @@ async function replyToComment(commentId, message, accessToken) {
 // ======================================================
 // الدالة الرئيسية لمعالجة الرسائل والرد عليها بالـ AI
 // ======================================================
-async function processMessengerMessage(pageId, senderId, messageText) {
+async function processMessengerMessage(pageId, senderId, messageText, commentId = null) {
     // 1. جيب بيانات الصفحة من قاعدة البيانات
     const page = await MessengerPage.findOne({ where: { pageId, isActive: true } });
     if (!page) {
@@ -261,11 +258,16 @@ async function processMessengerMessage(pageId, senderId, messageText) {
         // ====== وضع الرد الثابت ======
         if (page.replyMode === 'fixed') {
             if (page.fixedReply) {
-                // ابعت الرد الثابت مرة واحدة بس (للعميل الجديد أو أول رسالة)
-                if (created) {
+                // ابعت الرد الثابت دائماً لو جي من كومنت، ومرة واحدة بس لو رسالة عادية
+                if (created || commentId) {
                     const fixedMsg = page.fixedReply;
                     await Message.create({ UserId: userId, remoteJid: `msng_${pageId}_${senderId}`, role: 'model', content: fixedMsg });
-                    await sendMessengerReply(senderId, fixedMsg, accessToken);
+                    
+                    if (commentId) {
+                        await sendPrivateReplyToComment(commentId, fixedMsg, accessToken);
+                    } else {
+                        await sendMessengerReply(senderId, fixedMsg, accessToken);
+                    }
                     console.log(`✅ [Fixed Reply] Sent to ${senderId}`);
                 } else {
                     console.log(`⏸️ [Fixed Reply] Already replied to ${senderId}, skipping.`);
@@ -346,7 +348,12 @@ async function processMessengerMessage(pageId, senderId, messageText) {
             });
 
             // 8. ابعت الرد للعميل على الماسنجر
-            await sendMessengerReply(senderId, aiReply, accessToken);
+            if (commentId) {
+                // دايماً استخدم ميزة Private Reply المخصصة للكومنتات لأي كومنت
+                await sendPrivateReplyToComment(commentId, aiReply, accessToken);
+            } else {
+                await sendMessengerReply(senderId, aiReply, accessToken);
+            }
         }
     } finally {
         clearInterval(typingInterval);
@@ -474,6 +481,31 @@ export async function sendMessengerReply(recipientId, text, accessToken) {
         }
     } catch (err) {
         console.error('[Messenger] Failed to send reply:', err);
+    }
+}
+
+// ======================================================
+// إرسال رسالة خاصة رداً على كومنت
+// ======================================================
+async function sendPrivateReplyToComment(commentId, text, accessToken) {
+    try {
+        const response = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${accessToken}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                recipient: { comment_id: commentId },
+                message: { text: text.substring(0, 2000) }
+            })
+        });
+
+        const data = await response.json();
+        if (data.error) {
+            console.error('[Messenger] Private Reply Error:', data.error);
+        } else {
+            console.log(`✅ [Messenger] Private reply sent for comment ${commentId}`);
+        }
+    } catch (err) {
+        console.error('[Messenger] Failed to send private reply:', err);
     }
 }
 
