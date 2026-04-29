@@ -23,6 +23,11 @@ const MessengerConversation = sequelize.define('MessengerConversation', {
         type: DataTypes.STRING,
         defaultValue: 'عميل'
     },
+    summary_sent: { type: DataTypes.BOOLEAN, defaultValue: false },
+    is_handoff: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
     // تاريخ آخر رسالة
     lastMessageAt: {
         type: DataTypes.DATE,

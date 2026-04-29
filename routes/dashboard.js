@@ -3,6 +3,9 @@ import { startSession, stopSession, logoutSession, getStatus, getGroups, sendMan
 import User from '../models/User.js';
 import Message from '../models/Message.js';
 import Conversation from '../models/Conversation.js';
+import MessengerConversation from '../models/MessengerConversation.js';
+import MessengerPage from '../models/MessengerPage.js';
+import Campaign from '../models/Campaign.js';
 import Instruction from '../models/Instruction.js';
 import { upload, compressAndSaveImage, deleteImage } from '../config/uploadConfig.js';
 import { Op, Sequelize } from 'sequelize';
@@ -30,32 +33,7 @@ router.get('/', async (req, res) => {
     });
 });
 
-router.get('/chats', async (req, res) => {
-    try {
-        // Fetch unique contacts
-        const contacts = await Message.findAll({
-            where: { UserId: req.user.id },
-            attributes: ['remoteJid'],
-            group: ['remoteJid']
-        });
 
-        // Fetch requested chat messages if 'jid' query is present
-        let messages = [];
-        let activeJid = req.query.jid || null;
-
-        if (activeJid) {
-            messages = await Message.findAll({
-                where: { UserId: req.user.id, remoteJid: activeJid },
-                order: [['createdAt', 'ASC']]
-            });
-        }
-
-        res.render('chats', { user: req.user, page: 'chats', contacts, messages, activeJid });
-    } catch (err) {
-        console.error(err);
-        res.status(500).send("Error fetching chats");
-    }
-});
 
 router.post('/start-bot', async (req, res) => {
     const io = req.app.get('socketio');
@@ -97,7 +75,10 @@ router.get('/groups', async (req, res) => {
 router.get('/instructions', async (req, res) => {
     try {
         const instructions = await Instruction.findAll({
-            where: { UserId: req.user.id },
+            where: { 
+                UserId: req.user.id,
+                type: { [Op.ne]: 'gallery' }
+            },
             order: [['order', 'ASC'], ['createdAt', 'DESC']]
         });
 
@@ -173,6 +154,84 @@ router.post('/instructions/add', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).send("Error adding instruction");
+    }
+});
+
+// Gallery CRUD
+router.get('/gallery', async (req, res) => {
+    try {
+        const instructions = await Instruction.findAll({
+            where: { UserId: req.user.id, type: 'gallery' },
+            order: [['order', 'ASC'], ['createdAt', 'DESC']]
+        });
+        const groups = [];
+        res.render('gallery', { user: req.user, page: 'gallery', instructions, groups, success: false });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error fetching gallery");
+    }
+});
+
+router.post('/gallery/add', async (req, res) => {
+    try {
+        const { clientName, imageUrl } = req.body;
+
+        // AI generates description and keywords automatically
+        let autoContent = `منتج/خدمة: ${clientName}`;
+        let autoKeywords = clientName;
+
+        try {
+            const { generateKeywords } = await import('../controllers/aiController.js');
+            const kwResult = await generateKeywords(clientName);
+            if (kwResult) autoKeywords = kwResult;
+            autoContent = `هذا المنتج/الخدمة: ${clientName}.`;
+        } catch (aiErr) {
+            console.log('⚠️ AI keyword gen failed, using defaults:', aiErr.message);
+        }
+
+        await Instruction.create({
+            clientName,
+            title: clientName,
+            content: autoContent,
+            actionTarget: '',
+            imageUrl: imageUrl || '',
+            UserId: req.user.id,
+            keywords: autoKeywords,
+            type: 'gallery'
+        });
+
+        res.redirect('/dashboard/gallery');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error adding to gallery");
+    }
+});
+
+router.post('/gallery/edit', async (req, res) => {
+    try {
+        const { id, clientName, imageUrl } = req.body;
+
+        await Instruction.update({
+            clientName,
+            title: clientName,
+            imageUrl: imageUrl || ''
+        }, { where: { id: id, UserId: req.user.id } });
+
+        res.redirect('/dashboard/gallery');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error updating gallery");
+    }
+});
+
+// Delete gallery item
+router.post('/gallery/delete', async (req, res) => {
+    try {
+        await Instruction.destroy({ where: { id: req.body.id, UserId: req.user.id, type: 'gallery' } });
+        res.redirect('/dashboard/gallery');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error deleting gallery item");
     }
 });
 
@@ -450,6 +509,9 @@ router.post('/training/clear-teach', async (req, res) => {
     }
 });
 
+
+
+
 // Profile Routes
 router.get('/profile', (req, res) => {
     res.render('profile', { user: req.user, page: 'profile' });
@@ -687,6 +749,103 @@ router.get('/analytics/data', async (req, res) => {
     } catch (err) {
         console.error('Analytics Data API error:', err);
         res.status(500).json({ error: 'Failed to load analytics data' });
+    }
+});
+
+// Broadcast Page
+router.get('/broadcast', async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const campaigns = await Campaign.findAll({
+            where: { UserId: userId },
+            order: [['createdAt', 'DESC']]
+        });
+        const handoffCount = await Conversation.count({ where: { UserId: userId, is_handoff: true } });
+        const targetCount = await Conversation.count({ where: { UserId: userId } });
+
+        res.render('broadcast', {
+            user: req.user,
+            page: 'broadcast',
+            campaigns,
+            handoffCount,
+            targetCount
+        });
+    } catch (err) {
+        console.error('Broadcast page error:', err);
+        res.status(500).send('Error loading broadcasts');
+    }
+});
+
+// Broadcast API - create and start a campaign (for now runs synchronously in background asynchronously)
+router.post('/broadcast/send', async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { name, message, filterDays, platform, minDelay, maxDelay } = req.body;
+        
+        if (!name || !message) {
+            return res.status(400).json({ success: false, error: 'الاسم والرسالة مطلوبان' });
+        }
+        
+        const plat = platform === 'messenger' ? 'messenger' : 'whatsapp';
+        const delayMin = parseInt(minDelay) || 30;
+        const delayMax = parseInt(maxDelay) || 60;
+
+        // Identify targets
+        const whereClause = { UserId: userId };
+        if (filterDays && filterDays > 0) {
+            const dateFilter = new Date();
+            dateFilter.setDate(dateFilter.getDate() - filterDays);
+            whereClause.lastMessageAt = { [Op.gte]: dateFilter };
+        }
+        
+        let targets = [];
+        if (plat === 'whatsapp') {
+            targets = await Conversation.findAll({ where: whereClause });
+        } else {
+            targets = await MessengerConversation.findAll({ where: whereClause });
+        }
+        
+        if (targets.length === 0) {
+            return res.status(400).json({ success: false, error: 'لا يوجد عملاء مطابقين للفلتر' });
+        }
+
+        const campaign = await Campaign.create({
+            name,
+            message,
+            platform: plat,
+            status: 'running',
+            targetCount: targets.length,
+            UserId: userId
+        });
+
+        res.json({ success: true, campaignId: campaign.id, message: `بدأ الإرسال لـ ${targets.length} عميل` });
+
+        // Background process to send messages
+        import('../controllers/broadcastController.js').then(module => {
+            module.runBroadcastCampaign(campaign.id, targets, message, userId, plat, delayMin, delayMax);
+        }).catch(err => {
+            console.error('Could not load broadcast controller', err);
+        });
+
+    } catch (err) {
+        console.error('Broadcast send error:', err);
+        res.status(500).json({ success: false, error: 'We encountered an error starting the broadcast' });
+    }
+});
+
+// Toggle Inactivity Summary
+router.post('/toggle-inactivity-summary', async (req, res) => {
+    try {
+        const user = await User.findByPk(req.user.id);
+        if (!user) return res.status(404).json({ success: false });
+        
+        user.inactivity_summary = req.body.enabled;
+        await user.save();
+        
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Toggle inactivity summary error:', err);
+        res.status(500).json({ success: false });
     }
 });
 

@@ -262,14 +262,6 @@
                                                         </td>
                                                         <td>
                                                             <div class="text-light mb-2 mt-1 lh-base" style="white-space: pre-wrap; max-height: 160px; overflow-y: auto; font-size: 14.5px;"><%= inst.content %></div>
-                                                            <% if (inst.imageUrl) { %>
-                                                                <div class="d-flex gap-1 flex-wrap">
-                                                                    <% let images=[]; try { if (inst.imageUrl.startsWith('[')) { images=JSON.parse(inst.imageUrl); } else { images=[{ url: inst.imageUrl, description: 'صورة' }]; } } catch (e) { images=[{ url: inst.imageUrl, description: 'صورة' }]; } %>
-                                                                    <% images.forEach(img=> { %>
-                                                                        <img src="<%= img.url %>" alt="<%= img.description %>" title="<%= img.description %>" class="rounded border border-secondary" style="width: 40px; height: 40px; object-fit: cover; cursor: pointer;" onclick="window.open('<%= img.url %>', '_blank')">
-                                                                    <% }) %>
-                                                                </div>
-                                                            <% } %>
                                                         </td>
                                                         <td class="align-middle text-center">
                                                             <% if (inst.keywords) { %>
@@ -371,42 +363,7 @@
                                                 style="min-height: 250px;"></textarea>
                                         </div>
 
-                                        <!-- Image Gallery Section -->
-                                        <div class="mb-4">
-                                            <div class="d-flex align-items-center mb-2">
-                                                <label class="form-label text-white fw-bold m-0">🖼️ صور مرفقة (مع
-                                                    وصف)</label>
-                                                <span class="info-btn" data-bs-toggle="popover" tabindex="0"
-                                                    title="وصف الصور" data-bs-html="true"
-                                                    data-bs-content="اكتب وصف دقيق لكل صورة عشان البوت يعرف يختارها لما العميل يطلبها.<br><br><b>أمثلة للأوصاف:</b><ul class='helper-example-list'><li>✅ صورة الفستان الأحمر</li><li>✅ خريطة فروع مدينة نصر</li><li>✅ جدول المقاسات والشحن</li></ul>">?</span>
-                                            </div>
 
-                                            <!-- Hidden input to store JSON data -->
-                                            <input type="hidden" name="imageUrl" id="addImageUrlJson">
-
-                                            <!-- Gallery Container -->
-                                            <div id="addImagesContainer" class="d-flex flex-column gap-3 mb-3">
-                                                <!-- Images will be added here via JS -->
-                                            </div>
-
-                                            <!-- Add Button -->
-                                            <div class="d-flex gap-2 align-items-center">
-                                                <button type="button" id="addMoreImagesBtn"
-                                                    class="btn btn-outline-secondary border-dashed flex-grow-1 py-2 text-white-50">
-                                                    <span class="me-1">➕</span> إضافة صورة
-                                                </button>
-                                                <span class="spinner-border spinner-border-sm text-light d-none"
-                                                    id="addUploadSpinner"></span>
-                                                <span id="addUploadStatus" class="small text-white-50"></span>
-                                            </div>
-
-                                            <!-- Hidden File Input for triggering upload -->
-                                            <input type="file" id="addGalleryInput" accept="image/*" class="d-none">
-
-                                            <div class="form-text text-white-50 mt-2">يمكنك إضافة أكثر من صورة. اكتب
-                                                وصفاً دقيقاً لكل صورة ومختلف عن الاخر ليتمكن البوت من اختيارها (مثال:
-                                                "أحمر", "عرض أمامي"، "الاصلي" ).</div>
-                                        </div>
 
                                         <div class="d-flex align-items-center mb-2">
                                             <label class="form-label text-white fw-bold m-0">🎯 إرسال الطلب إلى (Action
@@ -499,41 +456,7 @@
                                             <div class="form-text text-white-50 mt-1">تعديل الكلمات المفتاحية بالاضافة والحذف. (اكتب الكلمة واضغط Enter)</div>
                                         </div>
 
-                                        <!-- Image Gallery Section for Edit -->
-                                        <div class="mb-4">
-                                            <div class="d-flex align-items-center mb-2">
-                                                <label class="form-label text-white fw-bold m-0">🖼️ صور مرفقة (مع
-                                                    وصف)</label>
-                                                <span class="info-btn" data-bs-toggle="popover" tabindex="0"
-                                                    title="وصف الصور" data-bs-html="true"
-                                                    data-bs-content="اكتب وصف دقيق لكل صورة عشان البوت يعرف يختارها لما العميل يطلبها.<br><br><b>أمثلة للأوصاف:</b><ul class='helper-example-list'><li>✅ صورة الفستان الأحمر</li><li>✅ خريطة فروع مدينة نصر</li><li>✅ جدول المقاسات والشحن</li></ul>">?</span>
-                                            </div>
 
-                                            <!-- Hidden input to store JSON data -->
-                                            <input type="hidden" name="imageUrl" id="editImageUrlJson">
-
-                                            <!-- Gallery Container -->
-                                            <div id="editImagesContainer" class="d-flex flex-column gap-3 mb-3">
-                                                <!-- Images will be added here via JS -->
-                                            </div>
-
-                                            <!-- Add Button -->
-                                            <div class="d-flex gap-2 align-items-center">
-                                                <button type="button" id="editMoreImagesBtn"
-                                                    class="btn btn-outline-secondary border-dashed flex-grow-1 py-2 text-white-50">
-                                                    <span class="me-1">➕</span> إضافة صورة
-                                                </button>
-                                                <span class="spinner-border spinner-border-sm text-light d-none"
-                                                    id="editUploadSpinner"></span>
-                                                <span id="editUploadStatus" class="small text-white-50"></span>
-                                            </div>
-
-                                            <!-- Hidden File Input -->
-                                            <input type="file" id="editGalleryInput" accept="image/*" class="d-none">
-
-                                            <div class="form-text text-white-50 mt-2">يمكنك تعديل الأوصاف أو حذف صور أو
-                                                إضافة صور جديدة.</div>
-                                        </div>
 
                                         <div class="mb-3">
                                             <div class="d-flex align-items-center mb-2">

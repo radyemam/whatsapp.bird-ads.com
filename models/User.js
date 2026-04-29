@@ -65,6 +65,11 @@ const User = sequelize.define('User', {
         type: DataTypes.INTEGER,
         defaultValue: 0,
         comment: 'Total estimated tokens used by the user'
+    },
+    inactivity_summary: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+        comment: 'Send conversation summary to control group after 15 min inactivity'
     }
 }, {
     hooks: {

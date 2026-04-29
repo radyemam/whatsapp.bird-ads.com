@@ -20,6 +20,7 @@ const Conversation = sequelize.define('Conversation', {
         type: DataTypes.STRING,
         allowNull: true
     },
+    summary_sent: { type: DataTypes.BOOLEAN, defaultValue: false },
     is_handoff: {
         type: DataTypes.BOOLEAN,
         defaultValue: false
@@ -47,7 +48,7 @@ const Conversation = sequelize.define('Conversation', {
 });
 
 // Relationships
-User.hasMany(Conversation, { onDelete: 'CASCADE' });
-Conversation.belongsTo(User);
+User.hasMany(Conversation, { foreignKey: 'UserId', as: 'Conversations', onDelete: 'CASCADE' });
+Conversation.belongsTo(User, { foreignKey: 'UserId', as: 'User' });
 
 export default Conversation;

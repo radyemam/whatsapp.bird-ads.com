@@ -193,6 +193,32 @@
             margin-bottom: 8px;
         }
     }
+    /* ===== Chat Image Rendering ===== */
+    .msg-img-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+    }
+    .msg-img-grid img {
+        width: 90px;
+        height: 90px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.15);
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .msg-img-grid img:hover {
+        transform: scale(1.08);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
+    .msg-img-label {
+        font-size: 11px;
+        color: rgba(255,255,255,0.45);
+        margin-top: 4px;
+        text-align: center;
+    }
 
 </style>
 
@@ -402,7 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
     chatInput.addEventListener('input', () => autoResize(chatInput));
     teachInput.addEventListener('input', () => autoResize(teachInput));
 
-    // Render message
+    // Render message — supports image injection from gallery
     const addMessage = (container, text, isUser, type) => {
         const div = document.createElement('div');
         if (type === 'teach') {
@@ -410,7 +436,41 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             div.className = `msg-bubble ${isUser ? 'msg-user' : 'msg-ai'}`;
         }
-        div.innerHTML = text.replace(/\n/g, '<br>');
+
+        // Extract image references like [صورة: URL] or check for gallery images in botReply
+        let displayText = text;
+        const imgMatches = [...text.matchAll(/\[صورة:\s*(https?:\/\/[^\]]+)\]/g)];
+        const urlMatches = [...text.matchAll(/https?:\/\/\S+\.(?:jpg|jpeg|png|webp|gif)/gi)];
+        const allImgUrls = [
+            ...imgMatches.map(m => ({ url: m[1].trim(), fromTag: true })),
+            ...urlMatches.map(m => ({ url: m[0].trim(), fromTag: false }))
+        ];
+
+        // Remove raw image tags from text
+        displayText = displayText
+            .replace(/\[صورة:\s*https?:\/\/[^\]]+\]/g, '')
+            .replace(/https?:\/\/\S+\.(?:jpg|jpeg|png|webp|gif)/gi, '')
+            .trim();
+
+        div.innerHTML = displayText.replace(/\n/g, '<br>');
+
+        // Append image grid if images found
+        if (allImgUrls.length > 0) {
+            const grid = document.createElement('div');
+            grid.className = 'msg-img-grid';
+            allImgUrls.forEach(imgObj => {
+                const wrapper = document.createElement('div');
+                const img = document.createElement('img');
+                img.src = imgObj.url;
+                img.loading = 'lazy';
+                img.alt = 'صورة المنتج';
+                img.onclick = () => window.open(imgObj.url, '_blank');
+                wrapper.appendChild(img);
+                grid.appendChild(wrapper);
+            });
+            div.appendChild(grid);
+        }
+
         container.appendChild(div);
         scrollToBottom(container);
     };

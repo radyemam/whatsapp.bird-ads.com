@@ -17,19 +17,6 @@
             </a>
         </li>
 
-        <!-- Chats -->
-        <li class="sidebar-item <%= page === 'chats' ? 'active' : '' %>">
-            <a href="/dashboard/chats" class="sidebar-link">
-                <div class="sidebar-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
-                        viewBox="0 0 16 16">
-                        <path
-                            d="M16 8c0 3.866-3.582 7-8 7a9.06 9.06 0 0 1-2.347-.306c-.584.296-1.925.864-4.181 1.234-.2.032-.352-.176-.273-.362.354-.836.674-1.95.77-2.966C.744 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7zM4.5 5a.5.5 0 0 0 0 1h7a.5.5 0 0 0 0-1h-7zm0 2.5a.5.5 0 0 0 0 1h7a.5.5 0 0 0 0-1h-7zm0 2.5a.5.5 0 0 0 0 1h4a.5.5 0 0 0 0-1h-4z" />
-                    </svg>
-                </div>
-                <span class="sidebar-label">المحادثات</span>
-            </a>
-        </li>
 
         <!-- Messenger -->
         <li class="sidebar-item <%= page === 'messenger' ? 'active' : '' %>">
@@ -57,6 +44,16 @@
             </a>
         </li>
 
+        <!-- Gallery -->
+        <li class="sidebar-item <%= page === 'gallery' ? 'active' : '' %>">
+            <a href="/dashboard/gallery" class="sidebar-link">
+                <div class="sidebar-icon">
+                    <i class="bi bi-images" style="font-size: 20px;"></i>
+                </div>
+                <span class="sidebar-label">معرض الصور</span>
+            </a>
+        </li>
+
         <!-- Training Simulator -->
         <li class="sidebar-item <%= typeof page !== 'undefined' && page === 'training' ? 'active' : '' %>">
             <a href="/dashboard/training" class="sidebar-link">
@@ -79,7 +76,7 @@
                         <path d="M5 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
                     </svg>
                 </div>
-                <span class="sidebar-label">Live Chat
+                <span class="sidebar-label">محادثات واتساب
                     <% if (typeof handoffCount !== 'undefined' && handoffCount > 0) { %>
                     <span class="badge bg-danger ms-1" style="font-size:10px;"><%= handoffCount %></span>
                     <% } %>
@@ -99,17 +96,19 @@
             </a>
         </li>
 
-        <!-- Messenger Link -->
-        <li class="sidebar-item">
-            <a href="/dashboard/messenger" class="sidebar-link">
+        <!-- Broadcast -->
+        <li class="sidebar-item <%= page === 'broadcast' ? 'active' : '' %>">
+            <a href="/dashboard/broadcast" class="sidebar-link">
                 <div class="sidebar-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M0 7.76C0 3.301 3.493 0 8 0s8 3.301 8 7.76-3.493 7.76-8 7.76c-.81 0-1.586-.107-2.316-.307a.64.64 0 0 0-.427.03l-1.588.702a.64.64 0 0 1-.898-.566l-.044-1.423a.64.64 0 0 0-.215-.456C.956 12.108 0 10.092 0 7.76zm5.546-1.459-2.35 3.728c-.225.358.214.761.551.506l2.525-1.916a.48.48 0 0 1 .578-.002l1.869 1.402a1.2 1.2 0 0 0 1.735-.32l2.35-3.728c.226-.358-.214-.761-.551-.506L9.728 7.381a.48.48 0 0 1-.578.002L7.281 5.98a1.2 1.2 0 0 0-1.735.32z"/>
+                        <path d="M14.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h13zm-13-1A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-13z"/>
+                        <path d="M3 5.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zM3 8a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9A.5.5 0 0 1 3 8zm0 2.5a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5z"/>
                     </svg>
                 </div>
-                <span class="sidebar-label">ربط الماسنجر</span>
+                <span class="sidebar-label">رسائل جماعية</span>
             </a>
         </li>
+
 
         <!-- Profile -->
         <li class="sidebar-item <%= page === 'profile' ? 'active' : '' %>">

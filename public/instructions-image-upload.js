@@ -62,14 +62,18 @@ function renderAddGallery() {
 
     addImages.forEach((img, index) => {
         const item = document.createElement('div');
-        item.className = 'gallery-item';
+        item.className = 'gallery-item-card';
         item.innerHTML = `
-            <img src="${img.url}" class="gallery-thumb">
-            <input type="text" class="form-control bg-dark text-white border-secondary" 
-                placeholder="وصف الصورة (مثال: أحمر، أمامي)" 
-                value="${img.description}" 
-                onchange="updateAddDescription(${index}, this.value)">
-            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeAddImage(${index})">❌</button>
+            <button type="button" class="gallery-item-delete" onclick="removeAddImage(${index})" title="حذف">
+                <i class="bi bi-x"></i>
+            </button>
+            <img src="${img.url}" class="gallery-item-img">
+            <div class="gallery-item-desc">
+                <input type="text" class="form-control bg-dark text-white border-secondary" 
+                    placeholder="وصف الصورة (مثال: أحمر)" 
+                    value="${img.description}" 
+                    onchange="updateAddDescription(${index}, this.value)">
+            </div>
         `;
         container.appendChild(item);
     });
@@ -153,14 +157,18 @@ function renderEditGallery() {
 
     editImages.forEach((img, index) => {
         const item = document.createElement('div');
-        item.className = 'gallery-item';
+        item.className = 'gallery-item-card';
         item.innerHTML = `
-            <img src="${img.url}" class="gallery-thumb">
-            <input type="text" class="form-control bg-dark text-white border-secondary" 
-                placeholder="وصف الصورة" 
-                value="${img.description || ''}" 
-                onchange="updateEditDescription(${index}, this.value)">
-            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeEditImage(${index})">❌</button>
+            <button type="button" class="gallery-item-delete" onclick="removeEditImage(${index})" title="حذف">
+                <i class="bi bi-x"></i>
+            </button>
+            <img src="${img.url}" class="gallery-item-img">
+            <div class="gallery-item-desc">
+                <input type="text" class="form-control bg-dark text-white border-secondary" 
+                    placeholder="وصف الصورة" 
+                    value="${img.description || ''}" 
+                    onchange="updateEditDescription(${index}, this.value)">
+            </div>
         `;
         container.appendChild(item);
     });

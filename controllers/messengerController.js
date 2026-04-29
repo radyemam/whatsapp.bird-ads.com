@@ -6,6 +6,7 @@ import MessengerPage from '../models/MessengerPage.js';
 import MessengerConversation from '../models/MessengerConversation.js';
 import Message from '../models/Message.js';
 import { GoogleAuth } from 'google-auth-library';
+import { notifyControlGroup } from './botController.js';
 
 // الـ Verify Token اللي بنستخدمه مع ميتا
 const VERIFY_TOKEN = 'lina_messenger_verify_2024';
@@ -68,8 +69,29 @@ export async function handleWebhook(req, res) {
         // ======================================================
         if (entry.messaging && entry.messaging.length > 0) {
             for (const event of entry.messaging) {
-                // تجاهل الـ echo (الرسائل اللي بعتها البوت نفسه)
-                if (event.message?.is_echo) continue;
+                // معالجة الـ echo (الرسائل المرسلة من الصفحة)
+                if (event.message?.is_echo) {
+                    const customerId = event.recipient?.id;
+                    const appId = event.message.app_id;
+                    const myAppId = process.env.FB_APP_ID;
+                    
+                    // لو مافيش app_id أو الـ app_id مش بتاعنا، معناه إن موظف رد من الـ Inbox
+                    if (!appId || (myAppId && String(appId) !== String(myAppId))) {
+                        if (customerId) {
+                            console.log(`👤 [Takeover] Human manually replied to ${customerId} on page ${pageId}. Disabling AI.`);
+                            try {
+                                await MessengerConversation.update(
+                                    { is_handoff: true },
+                                    { where: { pageId: pageId, senderId: customerId } }
+                                );
+                            } catch (err) {
+                                console.error('[Takeover] Error updating is_handoff:', err);
+                            }
+                        }
+                    }
+                    continue;
+                }
+                
                 // تجاهل الـ read و delivery events
                 if (!event.message?.text) continue;
 
@@ -121,13 +143,37 @@ async function handleCommentEvent(pageId, commentData) {
     await likeComment(commentId, accessToken);
 
     // 2. الرد على الكومنت بالرسالة الترحيبية
-    // استخراج الاسم الأول بس عشان يبقى أنيق
     const firstName = commenterName.split(' ')[0];
-    const publicReply = `أهلاً وسهلاً بحضرتك يا أ/ ${commenterName} 😊\nتم إرسال التفاصيل لك في الرسائل الخاصة ✅`;
+    let publicReply = page.defaultComment || 'أهلاً وسهلاً بحضرتك 😊\nتم إرسال التفاصيل لك في الرسائل الخاصة ✅';
+    publicReply = publicReply.replace('{name}', firstName);
     await replyToComment(commentId, publicReply, accessToken);
 
-    // 3. فتح محادثة ماسنجر مع العميل والرد بالـ AI مباشرة
-    // لو في نص في الكومنت، ابعته على الـ AI عشان يرد
+    // 3. فتح محادثة ماسنجر مع العميل
+    // لو النظام = fixed reply: ابعت الرد الثابت مرة واحدة بس
+    if (page.replyMode === 'fixed') {
+        if (page.fixedReply && commenterId) {
+            const fixedMsg = page.fixedReply.replace('{name}', firstName);
+            try {
+                // تحقق: هل ابعتنا رد ثابت قبل كده لنفس العميل؟
+                const [conv, wasCreated] = await (await import('../models/MessengerConversation.js')).default.findOrCreate({
+                    where: { pageId, senderId: commenterId },
+                    defaults: { UserId: page.UserId, pageId, senderId: commenterId, messageCount: 0, is_handoff: false }
+                });
+                if (wasCreated) {
+                    // أول مرة → ابعت الرد الثابت
+                    await sendMessengerReply(commenterId, fixedMsg, accessToken);
+                    console.log(`✅ [Fixed Reply] Sent fixed reply to ${commenterId} (first time via comment)`);
+                } else {
+                    console.log(`⏸️ [Fixed Reply] Already replied to ${commenterId}, skipping.`);
+                }
+            } catch (err) {
+                console.error('[Fixed Reply Comment] Error:', err);
+            }
+        }
+        return;
+    }
+
+    // وضع AI: ابعت الرد بالذكاء الاصطناعي
     if (commentText.trim().length > 0) {
         try {
             await processMessengerMessage(pageId, commenterId, commentText);
@@ -203,8 +249,31 @@ async function processMessengerMessage(pageId, senderId, messageText) {
         // 2. اعمل أو حدّث بيانات الـ conversation
         let [conversation, created] = await MessengerConversation.findOrCreate({
             where: { pageId, senderId },
-            defaults: { UserId: userId, pageId, senderId, messageCount: 0 }
+            defaults: { UserId: userId, pageId, senderId, messageCount: 0, is_handoff: false }
         });
+
+        // إذا كان الموظف قد تدخل، نوقف الرد
+        if (conversation.is_handoff) {
+            console.log(`⏸️ [Takeover] AI is paused for ${senderId}. Skipping reply.`);
+            return;
+        }
+
+        // ====== وضع الرد الثابت ======
+        if (page.replyMode === 'fixed') {
+            if (page.fixedReply) {
+                // ابعت الرد الثابت مرة واحدة بس (للعميل الجديد أو أول رسالة)
+                if (created) {
+                    const fixedMsg = page.fixedReply;
+                    await Message.create({ UserId: userId, remoteJid: `msng_${pageId}_${senderId}`, role: 'model', content: fixedMsg });
+                    await sendMessengerReply(senderId, fixedMsg, accessToken);
+                    console.log(`✅ [Fixed Reply] Sent to ${senderId}`);
+                } else {
+                    console.log(`⏸️ [Fixed Reply] Already replied to ${senderId}, skipping.`);
+                }
+            }
+            clearInterval(typingInterval);
+            return;
+        }
 
         // 3. جيب اسم المرسل من ميتا (لو مجبناهوش قبل كده)
         if (created || conversation.senderName === 'عميل') {
@@ -235,14 +304,44 @@ async function processMessengerMessage(pageId, senderId, messageText) {
         });
 
         // 6. استدعي الـ AI للرد
-        const aiReply = await callVertexAIForMessenger(userId, senderId, messageText, conversationId);
+        let aiReply = await callVertexAIForMessenger(userId, senderId, messageText, conversationId);
 
         if (aiReply) {
+            // Check for AI Handoff trigger
+            if (aiReply.includes('[HANDOFF]')) {
+                console.log(`🤖 [AI Handoff] AI decided to transfer conversation ${senderId} to human.`);
+                await conversation.update({ is_handoff: true });
+                
+                const handoffMessage = "عفواً، سأقوم بتحويلك الآن لأحد ممثلي خدمة العملاء للرد على استفسارك بدقة. يرجى الانتظار لحين الرد عليك.";
+                await Message.create({ UserId: userId, remoteJid: conversationId, role: 'model', content: handoffMessage });
+                await sendMessengerReply(senderId, handoffMessage, accessToken);
+                
+                // Notify WhatsApp Control Group
+                try {
+                    const notifyMsg = `🚨 *طلب تدخل بشري (تحويل تلقائي)*\n\n👤 العميل: ${conversation.senderName || senderId}\n📱 المنصة: ماسنجر\n\nيرجى التوجه للوحة التحكم للرد على العميل.`;
+                    await notifyControlGroup(userId, notifyMsg);
+                } catch (e) {
+                    console.error("Failed to notify control group for messenger handoff", e);
+                }
+                
+                return;
+            }
+
+            // FIX: Clean up Markdown links [text](url) -> url (if text is similar) to prevent duplication in Messenger
+            aiReply = aiReply.replace(/\[([^\]]*?)\]\(([^)]+?)\)/g, (match, text, url) => {
+                const cleanText = text.trim();
+                const cleanUrl = url.trim();
+                if (cleanText === cleanUrl || cleanUrl.includes(cleanText)) {
+                    return cleanUrl;
+                }
+                return `${cleanText}: ${cleanUrl}`;
+            });
+
             // 7. احفظ رد الـ AI
             await Message.create({
                 UserId: userId,
                 remoteJid: conversationId,
-                role: 'model', // Fixed from 'assistant' to 'model'
+                role: 'model',
                 content: aiReply
             });
 
@@ -284,7 +383,14 @@ async function callVertexAIForMessenger(userId, senderId, userText, conversation
         }
 
         // ابني الـ system prompt
-        const systemInstructions = filteredInstructions.map(inst => inst.content).join('\n\n---\n\n');
+        let systemInstructions = filteredInstructions.map(inst => inst.content).join('\n\n---\n\n');
+        
+        // Strict anti-hallucination and handoff instruction
+        systemInstructions += '\n\n💡 **تعليمات صارمة جداً (يمنع مخالفتها):**\n';
+        systemInstructions += '1. أنت مساعد ذكي وملتزم جداً بالتعليمات والبيانات المتوفرة لك فقط.\n';
+        systemInstructions += '2. إذا سألك العميل عن أي سؤال أو "سعر" لا يوجد إجابته في السياق الحالي، يمنع منعاً باتاً تأليف أي إجابة من خيالك.\n';
+        systemInstructions += '3. إذا شعرت بالارتباك أو طلب العميل التحدث لموظف بشري، يجب عليك الرد بكلمة واحدة فقط وهي بالضبط: [HANDOFF]\n';
+        systemInstructions += '4. لا تكتب أي كلام آخر مع كلمة [HANDOFF].\n';
 
         // جيب آخر 10 رسائل كـ context
         const historySaved = await Message.findAll({
@@ -307,9 +413,9 @@ async function callVertexAIForMessenger(userId, senderId, userText, conversation
         const payload = {
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             generationConfig: {
-                temperature: 0.7,
-                topK: 40,
-                topP: 0.95,
+                temperature: 0.1, // Very low temperature to prevent hallucination
+                topK: 20,
+                topP: 0.8,
                 maxOutputTokens: 1024,
             }
         };
@@ -349,7 +455,7 @@ async function callVertexAIForMessenger(userId, senderId, userText, conversation
 // ======================================================
 // إرسال رد للماسنجر عبر Graph API
 // ======================================================
-async function sendMessengerReply(recipientId, text, accessToken) {
+export async function sendMessengerReply(recipientId, text, accessToken) {
     try {
         const response = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${accessToken}`, {
             method: 'POST',
@@ -520,6 +626,57 @@ export async function disconnectPage(req, res) {
         const { pageId } = req.params;
         await MessengerPage.destroy({ where: { pageId, UserId: req.user.id } });
         res.json({ success: true, message: 'تم إلغاء ربط الصفحة' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+}
+
+// تحديث الرد التلقائي لصفحة
+export async function updatePageComment(req, res) {
+    try {
+        const { pageId } = req.params;
+        const { defaultComment } = req.body;
+        await MessengerPage.update(
+            { defaultComment },
+            { where: { pageId, UserId: req.user.id } }
+        );
+        res.json({ success: true, message: 'تم تحديث الرد التلقائي بنجاح' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+}
+
+// تحديث إعدادات نظام الرد (replyMode + fixedReply)
+export async function updatePageSettings(req, res) {
+    try {
+        const { pageId } = req.params;
+        const { replyMode, fixedReply } = req.body;
+
+        if (!['ai', 'fixed'].includes(replyMode)) {
+            return res.status(400).json({ success: false, message: 'نظام الرد غير صحيح' });
+        }
+
+        if (replyMode === 'fixed' && !fixedReply?.trim()) {
+            return res.status(400).json({ success: false, message: 'يجب كتابة الرد الثابت أولاً' });
+        }
+
+        await MessengerPage.update(
+            { replyMode, fixedReply: fixedReply?.trim() || null },
+            { where: { pageId, UserId: req.user.id } }
+        );
+
+        const modeText = replyMode === 'ai' ? 'ذكاء اصطناعي' : 'رد ثابت';
+        res.json({ success: true, message: `تم تفعيل نظام الـ ${modeText} بنجاح` });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+}
+
+// حذف ربط جميع الصفحات
+export async function disconnectAllPages(req, res) {
+    try {
+        await MessengerPage.destroy({ where: { UserId: req.user.id } });
+        res.json({ success: true, message: 'تم إلغاء ربط جميع الصفحات بنجاح' });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
