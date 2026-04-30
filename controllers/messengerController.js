@@ -258,8 +258,8 @@ async function processMessengerMessage(pageId, senderId, messageText, commentId 
         // ====== وضع الرد الثابت ======
         if (page.replyMode === 'fixed') {
             if (page.fixedReply) {
-                // ابعت الرد الثابت دائماً لو جي من كومنت، ومرة واحدة بس لو رسالة عادية
-                if (created || commentId) {
+                // ابعت الرد الثابت دائماً في وضع الرد الثابت
+                if (true) {
                     const fixedMsg = page.fixedReply;
                     await Message.create({ UserId: userId, remoteJid: `msng_${pageId}_${senderId}`, role: 'model', content: fixedMsg });
                     
@@ -269,8 +269,6 @@ async function processMessengerMessage(pageId, senderId, messageText, commentId 
                         await sendMessengerReply(senderId, fixedMsg, accessToken);
                     }
                     console.log(`✅ [Fixed Reply] Sent to ${senderId}`);
-                } else {
-                    console.log(`⏸️ [Fixed Reply] Already replied to ${senderId}, skipping.`);
                 }
             }
             clearInterval(typingInterval);
